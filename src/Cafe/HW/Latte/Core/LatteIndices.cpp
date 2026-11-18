@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Common/cpu_features.h"
+#include "Cafe/HW/Latte/Core/LatteIndicesMax.h"
 
 #if defined(ARCH_X86_64) && defined(__GNUC__)
 #include <immintrin.h>
@@ -598,27 +599,6 @@ void LatteIndices_fastConvertU32_NEON(const void* indexDataInput, void* indexDat
 
 #endif
 
-template<typename T, typename TInput>
-void _LatteIndices_alternativeCalculateIndexMax(const void* indexData, uint32 count, uint32 primitiveRestartIndex, uint32& indexMax)
-{
-	cemu_assert_debug(count != 0);
-	const TInput* idxPtrT = (const TInput*)indexData;
-	T _indexMax = 0;
-	cemu_assert_debug(primitiveRestartIndex <= std::numeric_limits<T>::max());
-	T restartIndexT = (T)primitiveRestartIndex;
-	while (count)
-	{
-		T idx = *idxPtrT;
-		if (idx != restartIndexT)
-		{
-			_indexMax = std::max(_indexMax, idx);
-		}
-		idxPtrT++;
-		count--;
-	}
-	indexMax = _indexMax;
-}
-
 // calculate min and max index while taking primitive restart into account
 // fallback implementation in case the fast path gives us invalid results
 void LatteIndices_alternativeCalculateIndexMax(const void* indexData, LatteIndexType indexType, uint32 count, uint32& indexMax)
@@ -630,6 +610,18 @@ void LatteIndices_alternativeCalculateIndexMax(const void* indexData, LatteIndex
 	}
 	uint32 primitiveRestartIndex = LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
 
+#if defined(__aarch64__)
+	if (indexType == LatteIndexType::U16_BE)
+		LatteIndices_alternativeCalculateIndexMax_NEON<uint16, true>(indexData, count, primitiveRestartIndex, indexMax);
+	else if (indexType == LatteIndexType::U32_BE)
+		LatteIndices_alternativeCalculateIndexMax_NEON<uint32, true>(indexData, count, primitiveRestartIndex, indexMax);
+	else if (indexType == LatteIndexType::U16_LE)
+		LatteIndices_alternativeCalculateIndexMax_NEON<uint16, false>(indexData, count, primitiveRestartIndex, indexMax);
+	else if (indexType == LatteIndexType::U32_LE)
+		LatteIndices_alternativeCalculateIndexMax_NEON<uint32, false>(indexData, count, primitiveRestartIndex, indexMax);
+	else
+		cemu_assert_debug(false);
+#else
 	if (indexType == LatteIndexType::U16_BE)
 	{
 		_LatteIndices_alternativeCalculateIndexMax<uint16, uint16be>(indexData, count, primitiveRestartIndex, indexMax);
@@ -650,6 +642,7 @@ void LatteIndices_alternativeCalculateIndexMax(const void* indexData, LatteIndex
 	{
 		cemu_assert_debug(false);
 	}
+#endif
 }
 
 void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32 count, LattePrimitiveMode primitiveMode, uint32& indexMax, Renderer::INDEX_TYPE& renderIndexType, uint32& outputCount, Renderer::IndexAllocation& indexAllocation)
