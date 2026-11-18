@@ -15,11 +15,7 @@ SwapchainInfoVk::SwapchainInfoVk(bool mainWindow, Vector2i size) : mainWindow(ma
 	m_logicalDevice = renderer->GetLogicalDevice();
 	m_physicalDevice = renderer->GetPhysicalDevice();
 
-#if BOOST_PLAT_ANDROID
 	m_surface = renderer->CreateFramebufferSurface(m_instance, windowHandleInfo, &m_currentWindow);
-#else
-	m_surface = renderer->CreateFramebufferSurface(m_instance, windowHandleInfo);
-#endif
 }
 
 
@@ -30,7 +26,6 @@ SwapchainInfoVk::~SwapchainInfoVk()
 		vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 }
 
-#if BOOST_PLAT_ANDROID
 void SwapchainInfoVk::RecreateSurface()
 {
 	if (!mainWindow)
@@ -46,14 +41,11 @@ void SwapchainInfoVk::RecreateSurface()
 
 	surfaceWasLost = false;
 }
-#endif
 
 void SwapchainInfoVk::Create()
 {
-#if BOOST_PLAT_ANDROID
 	if (surfaceWasLost)
 		RecreateSurface();
-#endif
 
 	const auto details = QuerySwapchainSupport(m_surface, m_physicalDevice);
 	m_surfaceFormat = ChooseSurfaceFormat(details.formats);
@@ -274,13 +266,11 @@ bool SwapchainInfoVk::AcquireImage()
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		m_shouldRecreate = true;
 
-#if BOOST_PLAT_ANDROID
 	if (result == VK_ERROR_SURFACE_LOST_KHR)
 	{
 		surfaceWasLost = true;
 		m_shouldRecreate = true;
 	}
-#endif
 
 	if (result == VK_TIMEOUT)
 	{
@@ -294,10 +284,8 @@ bool SwapchainInfoVk::AcquireImage()
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 			return false;
 
-#if BOOST_PLAT_ANDROID
 		if (result == VK_ERROR_SURFACE_LOST_KHR)
 			return false;
-#endif
 
 		throw std::runtime_error(fmt::format("Failed to acquire next image: {}", result));
 	}
@@ -455,11 +443,7 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 	}
 	else
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-#if BOOST_PLAT_ANDROID
 	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-#else
-	createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
-#endif
 	// opaque when the surface allows it; some drivers (Mesa PanVK on Android) only report inherit
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	if (const VkCompositeAlphaFlagsKHR supported = swapchainSupport.capabilities.supportedCompositeAlpha;

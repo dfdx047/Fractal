@@ -1,10 +1,5 @@
 #include "IAudioAPI.h"
 
-#if BOOST_OS_WINDOWS
-#include "XAudio2API.h"
-#include "XAudio27API.h"
-#include "DirectSoundAPI.h"
-#endif
 #include "config/CemuConfig.h"
 #if HAS_CUBEB
 #include "CubebAPI.h"
@@ -41,49 +36,12 @@ void IAudioAPI::PrintLogging()
 
 void IAudioAPI::InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample)
 {
-#if BOOST_OS_WINDOWS
-	// move this to Windows-specific audio API implementations and use a cross-platform format here
-	m_wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-	m_wfx.Format.nChannels = channels;
-	m_wfx.Format.nSamplesPerSec = samplerate;
-	m_wfx.Format.wBitsPerSample = bits_per_sample;
-	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels � wBitsPerSample) / 8
-	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec � nBlockAlign.
-	m_wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
-
-	m_wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-	m_wfx.Samples.wValidBitsPerSample = bits_per_sample;
-	switch (channels)
-	{
-	case 8:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT | SPEAKER_FRONT_LEFT_OF_CENTER | SPEAKER_FRONT_RIGHT_OF_CENTER);
-		break;
-	case 6:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
-		break;
-	case 4:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT);
-		break;
-	case 2:
-		m_wfx.dwChannelMask |= (SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT);
-		break;
-	default:
-		m_wfx.dwChannelMask = 0;
-		break;
-	}
-#endif
 }
 
 void IAudioAPI::InitializeStatic()
 {
 	SetAudioDelay(GetConfig().audio_delay);
 
-#if BOOST_OS_WINDOWS
-	s_availableApis[DirectSound] = true;
-	s_availableApis[XAudio2] = XAudio2API::InitializeStatic();
-	if (!s_availableApis[XAudio2]) // don't try to initialize the older lib if the newer version is available
-		s_availableApis[XAudio27] = XAudio27API::InitializeStatic();
-#endif
 #if HAS_CUBEB
 	s_availableApis[Cubeb] = CubebAPI::InitializeStatic();
 #endif
@@ -140,23 +98,6 @@ AudioAPIPtr IAudioAPI::CreateDevice(AudioAPI api, const DeviceDescriptionPtr& de
 
 	switch (api)
 	{
-#if BOOST_OS_WINDOWS
-	case DirectSound:
-	{
-		const auto tmp = std::dynamic_pointer_cast<DirectSoundAPI::DirectSoundDeviceDescription>(device);
-		return std::make_unique<DirectSoundAPI>(tmp->GetGUID(), samplerate, channels, samples_per_block, bits_per_sample);
-	}
-	case XAudio27:
-	{
-		const auto tmp = std::dynamic_pointer_cast<XAudio27API::XAudio27DeviceDescription>(device);
-		return std::make_unique<XAudio27API>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
-	}
-	case XAudio2:
-	{
-		const auto tmp = std::dynamic_pointer_cast<XAudio2API::XAudio2DeviceDescription>(device);
-		return std::make_unique<XAudio2API>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
-	}
-#endif
 #if HAS_CUBEB
 	case Cubeb:
 	{
@@ -176,20 +117,6 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> IAudioAPI::GetDevices(AudioAPI api)
 
 	switch (api)
 	{
-#if BOOST_OS_WINDOWS
-	case DirectSound:
-	{
-		return DirectSoundAPI::GetDevices();
-	}
-	case XAudio27:
-	{
-		return XAudio27API::GetDevices();
-	}
-	case XAudio2:
-	{
-		return XAudio2API::GetDevices();
-	}
-#endif
 #if HAS_CUBEB
 	case Cubeb:
 	{

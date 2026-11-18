@@ -113,25 +113,7 @@ void PPCRecompiler_recompileIfUnvisited(uint32 enterAddress)
 
 void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 {
-#if BOOST_OS_WINDOWS
-	uint32 prevCsr = _mm_getcsr();
-	if (prevCsr & _MM_ROUND_MASK) [[unlikely]]
-		_mm_setcsr(prevCsr & ~_MM_ROUND_MASK);
 	PPCRecompiler_enterRecompilerCode((uint64)funcPtr, (uint64)hCPU);
-	if (prevCsr & _MM_ROUND_MASK) [[unlikely]]
-		_mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | (prevCsr & _MM_ROUND_MASK));
-	// debug recompiler exit - useful to find frequently executed functions which couldn't be recompiled
-	#ifdef CEMU_DEBUG_ASSERT
-	if (hCPU->remainingCycles > 0 && GetAsyncKeyState(VK_F4))
-	{
-		auto t = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::microseconds>(t.time_since_epoch()).count();
-		cemuLog_log(LogType::Force, "Recompiler exit: 0x{:08x} LR: 0x{:08x} Timestamp {}.{:04}", hCPU->instructionPointer, hCPU->spr.LR, dur / 1000LL, (dur % 1000LL));
-	}
-	#endif
-#else
-	PPCRecompiler_enterRecompilerCode((uint64)funcPtr, (uint64)hCPU);
-#endif
 	// after leaving recompiler prematurely attempt to recompile the code at the new location
 	if (hCPU->remainingCycles > 0)
 	{

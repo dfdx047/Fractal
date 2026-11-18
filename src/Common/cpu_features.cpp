@@ -1,12 +1,7 @@
 #include "cpu_features.h"
 
-#if BOOST_OS_MACOS
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#endif
 
 
-#if BOOST_OS_LINUX
 std::string getCpuBrandNameLinux()
 {
 	static auto default_name = "unknown";
@@ -20,7 +15,6 @@ std::string getCpuBrandNameLinux()
 		return default_name;
 	return model;
 }
-#if BOOST_PLAT_ANDROID
 
 #include <sys/system_properties.h>
 
@@ -63,34 +57,11 @@ std::string getCpuBrandNameAndroid()
 		return getCpuBrandNameLinux();
     return tmp;
 }
-#endif // BOOST_PLAT_ANDROID
-#endif // BOOST_OS_LINUX
 
 CPUFeaturesImpl::CPUFeaturesImpl()
 {
-#if BOOST_PLAT_ANDROID
 	m_cpuBrandName = getCpuBrandNameAndroid();
-#elif BOOST_OS_LINUX
-	m_cpuBrandName = getCpuBrandNameLinux();
-#endif
 
-#if BOOST_OS_MACOS
-	std::string cpuName;
-	size_t size = 0;
-
-	if (sysctlbyname("machdep.cpu.brand_string", nullptr, &size, nullptr, 0) == 0 && size > 0)
-	{
-		std::vector<char> buffer(size);
-
-		if (sysctlbyname("machdep.cpu.brand_string", buffer.data(), &size, nullptr, 0) == 0 && size > 0)
-		{
-			cpuName.assign(buffer.data());
-		}
-	}
-
-	strncpy(m_cpuBrandName, cpuName.c_str(), sizeof(m_cpuBrandName) - 1);
-	m_cpuBrandName[sizeof(m_cpuBrandName) - 1] = '\0';
-#endif
 }
 
 std::string CPUFeaturesImpl::GetCPUName()

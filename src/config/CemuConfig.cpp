@@ -275,11 +275,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	}
 	// debug
 	auto debug = parser.get("Debug");
-#if BOOST_OS_WINDOWS
-	crash_dump = debug.get("CrashDumpWindows", crash_dump);
-#elif BOOST_OS_UNIX
 	crash_dump = debug.get("CrashDumpUnix", crash_dump);
-#endif
 	gdb_port = debug.get("GDBPort", 1337);
 
 	// input
@@ -295,9 +291,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
 
 	
-#if BOOST_PLAT_ANDROID
 	custom_driver_path = parser.get("custom_driver_path", "");
-#endif
 
 	return parser;
 }
@@ -446,11 +440,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	}
 	// debug
 	auto debug = config.set("Debug");
-#if BOOST_OS_WINDOWS
-	debug.set("CrashDumpWindows", crash_dump.GetValue());
-#elif BOOST_OS_UNIX
 	debug.set("CrashDumpUnix", crash_dump.GetValue());
-#endif
 	debug.set("GDBPort", gdb_port);
 
 	// input
@@ -465,9 +455,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 	usbdevices.set("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad.GetValue());
 
-#if BOOST_PLAT_ANDROID
 	config.set("custom_driver_path", custom_driver_path.GetValue());
-#endif
 
 	return config;
 }

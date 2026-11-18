@@ -1034,9 +1034,6 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	g_renderer->HandleScreenshotRequest(textureView, isPadView);
 	if (!g_renderer->ImguiBegin(!isPadView))
 		return;
-#if !BOOST_PLAT_ANDROID
-	swkbd::render(!isPadView);
-#endif
 	nn::erreula::render(!isPadView);
 	LatteOverlay_render(isPadView);
 	g_renderer->ImguiEnd();

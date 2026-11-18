@@ -8,14 +8,12 @@
 #include <set>
 #include "config/ActiveSettings.h"
 
-#if BOOST_PLAT_ANDROID
 #include <signal.h>
 #include <sys/mman.h>
 #include <ucontext.h>
 #include <unistd.h>
 #include <thread>
 #include <atomic>
-#endif
 
 namespace GuestWatch
 {
@@ -47,7 +45,6 @@ namespace GuestWatch
 	static void Add(uint32 pc, uint32 lr, uint32 thread, uint32 addr, uint32 size, uint32 value, char kind);
 	static uint32 CurrentThread();
 
-#if BOOST_PLAT_ANDROID
 	// watch_jit=1: recompiled code writes guest memory with host stores the hooks above never see. The host pages of the
 	// range are made read only; a store to them faults, HandleFault decodes it (STR/STUR, register or immediate
 	// offset), logs it when it touches the range, performs it and skips the instruction. Stores it can't decode
@@ -153,10 +150,6 @@ namespace GuestWatch
 		mc.pc += 4;
 		return true;
 	}
-#else
-	static void StartPageWatch() {}
-	bool HandleFault(void*, void*) { return false; }
-#endif
 
 	void Init()
 	{

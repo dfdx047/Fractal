@@ -544,8 +544,6 @@ if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
   target_link_libraries(CemuCafe PRIVATE xbyak_aarch64)
 endif()
 
-set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 cemu_use_precompiled_header(CemuCafe)
 
 if (ENABLE_LIBUSB)
@@ -578,16 +576,8 @@ target_link_libraries(CemuCafe PRIVATE
   OpenSSL::SSL
 )
 
-if (ENABLE_WAYLAND)
-	# PUBLIC because wayland-client.h is included in VulkanAPI.h
-  target_link_libraries(CemuCafe PUBLIC Wayland::Client)
-endif()
-
 if (ENABLE_LIBUSB)
   if (ENABLE_VCPKG)
-    if(WIN32)
-      set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
-    endif()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
     target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
@@ -595,8 +585,4 @@ if (ENABLE_LIBUSB)
     find_package(libusb MODULE REQUIRED)
     target_link_libraries(CemuCafe PRIVATE libusb::libusb)
   endif ()
-endif()
-
-if(WIN32)
-	target_link_libraries(CemuCafe PRIVATE iphlpapi)
 endif()

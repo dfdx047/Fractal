@@ -7,21 +7,12 @@
 // Pokkén Tournament crashed in __FSUpdateQueue -> FSUnlockMutex -> __OSLockScheduler when leaving a menu
 thread_local sint32 s_schedulerLockCount = 0;
 
-#if BOOST_OS_WINDOWS
-#include <synchapi.h>
-CRITICAL_SECTION s_csSchedulerLock;
-#else
 #include <pthread.h>
 pthread_mutex_t s_ptmSchedulerLock;
-#endif
 
 TLS_WORKAROUND_NOINLINE void __OSLockScheduler(void* obj)
 {
-#if BOOST_OS_WINDOWS
-	EnterCriticalSection(&s_csSchedulerLock);
-#else
 	pthread_mutex_lock(&s_ptmSchedulerLock);
-#endif
 	s_schedulerLockCount++;
 	cemu_assert_debug(s_schedulerLockCount <= 1); // >= 2 should not happen. Scheduler lock does not allow recursion
 }
@@ -34,11 +25,7 @@ TLS_WORKAROUND_NOINLINE bool __OSHasSchedulerLock()
 TLS_WORKAROUND_NOINLINE bool __OSTryLockScheduler(void* obj)
 {
 	bool r;
-#if BOOST_OS_WINDOWS
-	r = TryEnterCriticalSection(&s_csSchedulerLock);
-#else
 	r = pthread_mutex_trylock(&s_ptmSchedulerLock) == 0;
-#endif
 	if (r)
 	{
 		s_schedulerLockCount++;
@@ -51,11 +38,7 @@ TLS_WORKAROUND_NOINLINE void __OSUnlockScheduler(void* obj)
 {
 	s_schedulerLockCount--;
 	cemu_assert_debug(s_schedulerLockCount >= 0);
-#if BOOST_OS_WINDOWS
-	LeaveCriticalSection(&s_csSchedulerLock);
-#else
 	pthread_mutex_unlock(&s_ptmSchedulerLock);
-#endif
 }
 
 namespace coreinit
@@ -111,14 +94,10 @@ namespace coreinit
 
 	void InitializeSchedulerLock()
 	{
-#if BOOST_OS_WINDOWS
-		InitializeCriticalSection(&s_csSchedulerLock);
-#else
 		pthread_mutexattr_t ma;
 		pthread_mutexattr_init(&ma);
 		pthread_mutexattr_settype(&ma, PTHREAD_MUTEX_RECURSIVE);
 		pthread_mutex_init(&s_ptmSchedulerLock, &ma);
-#endif
 		cafeExportRegister("coreinit", __OSLockScheduler, LogType::Placeholder);
 		cafeExportRegister("coreinit", __OSUnlockScheduler, LogType::Placeholder);
 

@@ -311,20 +311,6 @@ void LatteBufferCache_Sync(uint32 maxVtxIndex, uint32 baseInstance, uint32 insta
 			if ( lookupRangeSize == 0 )
 				lookupRangeSize = 1;
 
-#if BOOST_OS_MACOS
-			if(bufferStride % 4 != 0)
-			{
-				if (g_renderer->GetType() == RendererAPI::Vulkan)
-				{
-					if (VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance())
-					{
-						auto fixedBuffer = vkRenderer->buffer_genStrideWorkaroundVertexBuffer(bufferAddress, fixedBufferSize, bufferStride);
-						vkRenderer->buffer_bindVertexStrideWorkaroundBuffer(fixedBuffer.first, fixedBuffer.second, bufferIndex, fixedBufferSize);
-						continue;
-					}
-				}
-			}
-#endif
 
 			uint32 bindOffset = LatteBufferCache_retrieveDataInCache(bufferAddress, lookupRangeSize);
 			bindBufferArray[bindBufferArraySize].index = bufferIndex;

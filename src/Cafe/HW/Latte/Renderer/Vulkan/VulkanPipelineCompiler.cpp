@@ -12,9 +12,7 @@
 #include "util/helpers/Serializer.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
 #include "HW/Latte/Renderer/RendererCore.h"
-#if defined(__ANDROID__)
 #include <unistd.h>
-#endif
 
 RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
 {
@@ -457,11 +455,6 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 				bufferStride, vertexShader ? vertexShader->baseHash : 0, formats));
 		}
 		VkVertexInputBindingDescription entry{};
-#if BOOST_OS_MACOS
-		if (bufferStride % 4 != 0) {
-			bufferStride = bufferStride + (4-(bufferStride % 4));
-		}
-#endif
 		entry.stride = bufferStride;
 		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
 			entry.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -1204,12 +1197,6 @@ static ConcurrentQueue<PipelineCompiler*> s_pipelineCompileRequests;
 static void compilePipeline_thread(sint32 threadIndex)
 {
 	SetThreadName("compilePl");
-#ifdef _WIN32
-	// to avoid starving the main cpu and render threads the pipeline compile threads run at lower priority
-	// except for one thread which we always run at normal priority to prevent the opposite scenario where all compile threads are starved
-	if(threadIndex != 0)
-		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-#endif
 	while (!s_compileThreadsShutdownSignal)
 	{
 		PipelineCompiler* request = s_pipelineCompileRequests.pop();
@@ -1234,7 +1221,6 @@ void PipelineCompiler::CompileThreadPool_Start()
 
 	numCompileThreads = std::min(numCompileThreads, 8u); // cap at 8
 
-#if defined(__ANDROID__)
 	// phone SoCs have few fast cores and the driver's compiler doesn't scale: with 7 threads every pipeline took 2-3x
 	// longer (Adreno 610: 232 ms vs 82 ms with one thread) and the bursts starved the PPC and GPU threads, while the
 	// pipelines didn't finish any sooner. Cold-cache stutter (time in frames > 100 ms) dropped 17 -> 7.5 s (Mi A3, one
@@ -1244,7 +1230,6 @@ void PipelineCompiler::CompileThreadPool_Start()
 		const uint64 ramBytes = (uint64)sysconf(_SC_PHYS_PAGES) * (uint64)sysconf(_SC_PAGE_SIZE);
 		numCompileThreads = ramBytes < 6ull * 1024 * 1024 * 1024 ? 1 : 2;
 	}
-#endif
 
 	// perf/tuning.txt compile_threads=N overrides the count (0 = the rule above)
 	static const int s_compileThreadsOverride = PerfLog::Tunable("compile_threads", 0);

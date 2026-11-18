@@ -6,16 +6,7 @@ namespace WindowSystem
 {
 	struct WindowHandleInfo
 	{
-		enum class Backend
-		{
-			X11,
-			Wayland,
-			Cocoa,
-			Windows,
-			Android,
-		} backend;
-		std::atomic<void*> display = nullptr;
-		std::atomic<void*> surface = nullptr;
+		std::atomic<void*> surface = nullptr; // ANativeWindow*
 	};
 
 	enum struct PlatformKeyCodes : uint32

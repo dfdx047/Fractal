@@ -76,9 +76,6 @@ DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, s
 
 	m_running = true;
 	m_thread = std::thread(&DirectSoundAPI::AudioThread, this);
-#if BOOST_OS_WINDOWS
-	SetThreadPriority(m_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
-#endif
 }
 
 void DirectSoundAPI::AudioThread()

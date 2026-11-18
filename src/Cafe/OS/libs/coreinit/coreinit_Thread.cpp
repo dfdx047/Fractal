@@ -19,8 +19,6 @@
 
 #if defined(__clang__)
 #include <arm_acle.h>
-#elif defined(_MSC_VER)
-#include <intrin.h>
 #endif
 
 static void ConfigureHostFloatingPointEnvironment()
@@ -30,8 +28,6 @@ static void ConfigureHostFloatingPointEnvironment()
 	__arm_wsr64("fpcr", (__arm_rsr64("fpcr") | (1 << 24)) & ~(1 << 25));
 #elif defined(__GNUC__)
 	__builtin_aarch64_set_fpcr((__builtin_aarch64_get_fpcr() | (1 << 24)) & ~(1 << 25));
-#elif defined(_MSC_VER)
-	_WriteStatusReg(ARM64_FPCR, (_ReadStatusReg(ARM64_FPCR) | (1 << 24)) & ~(1 << 25));
 #endif
 }
 
@@ -1484,7 +1480,6 @@ namespace coreinit
 		}
 	}
 
-#if BOOST_OS_LINUX
 	#include <unistd.h>
 	#include <sys/prctl.h>
 
@@ -1496,7 +1491,6 @@ namespace coreinit
 		std::lock_guard schedulerThreadIdsLockGuard(g_schedulerThreadIdsLock);
 		return g_schedulerThreadIds;
 	}
-#endif
 
 	void OSSchedulerCoreEmulationThread(void* _assignedCoreIndex)
 	{
@@ -1508,7 +1502,6 @@ namespace coreinit
 
 		ConfigureHostFloatingPointEnvironment();
 
-#if BOOST_OS_LINUX
 		if (g_gdbstub)
 		{
 			// need to allow the GDBStub to attach to our thread
@@ -1521,7 +1514,6 @@ namespace coreinit
 			std::lock_guard schedulerThreadIdsLockGuard(g_schedulerThreadIdsLock);
 			g_schedulerThreadIds.emplace_back(tid);
 		}
-#endif
 
 		__OSSetSchedulerFiber(Fiber::PrepareCurrentThread());
 
@@ -1574,12 +1566,10 @@ namespace coreinit
 			threadItr.join();
 		sSchedulerThreads.clear();
 		g_schedulerThreadHandles.clear();
-#if BOOST_OS_LINUX
 		{
 			std::lock_guard schedulerThreadIdsLockGuard(g_schedulerThreadIdsLock);
 			g_schedulerThreadIds.clear();
 		}
-#endif
 		// clean up all fibers
 		for (auto& it : g_idleLoopFiber)
 		{

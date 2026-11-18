@@ -20,13 +20,9 @@
 #include <fstream>
 #include <unordered_map>
 
-#if BOOST_OS_LINUX || BOOST_PLAT_ANDROID
 #include <dirent.h>
 #include <unistd.h>
-#endif
-#if BOOST_PLAT_ANDROID
 #include <sys/system_properties.h>
-#endif
 
 void PPCRecompilerAArch64Gen_reportInterfaceFunctionsToPerfLog(); // BackendAArch64.cpp
 
@@ -412,7 +408,6 @@ namespace PerfLog
 	static std::unordered_map<int, ThreadTicks> ReadThreadTicks()
 	{
 		std::unordered_map<int, ThreadTicks> result;
-#if BOOST_OS_LINUX || BOOST_PLAT_ANDROID
 		DIR* dir = opendir("/proc/self/task");
 		if (!dir)
 			return result;
@@ -444,30 +439,21 @@ namespace PerfLog
 			result.emplace(tid, std::move(t));
 		}
 		closedir(dir);
-#endif
 		return result;
 	}
 
 	static uint64 ReadRssMb()
 	{
-#if BOOST_OS_LINUX || BOOST_PLAT_ANDROID
 		std::string statm = ReadSmallFile("/proc/self/statm");
 		std::istringstream ss(statm);
 		uint64 size = 0, resident = 0;
 		ss >> size >> resident;
 		return resident * (uint64)sysconf(_SC_PAGESIZE) / (1024 * 1024);
-#else
-		return 0;
-#endif
 	}
 
 	static int CpuCount()
 	{
-#if BOOST_OS_LINUX || BOOST_PLAT_ANDROID
 		return (int)sysconf(_SC_NPROCESSORS_CONF);
-#else
-		return 0;
-#endif
 	}
 
 	// current clock of each CPU in MHz; empty when offline or not readable
@@ -487,13 +473,9 @@ namespace PerfLog
 
 	static std::string AndroidProp(const char* name)
 	{
-#if BOOST_PLAT_ANDROID
 		char value[PROP_VALUE_MAX] = {};
 		__system_property_get(name, value);
 		return value;
-#else
-		return {};
-#endif
 	}
 
 	static std::string CsvText(std::string s)
@@ -519,17 +501,13 @@ namespace PerfLog
 		f << "build: " << BUILD_VERSION_WITH_NAME_STRING << "\n";
 		f << "title_id: " << fmt::format("{:016x}", CafeSystem::GetForegroundTitleId()) << "\n";
 		f << "title: " << CafeSystem::GetForegroundTitleName() << "\n";
-#if BOOST_PLAT_ANDROID
 		f << "device: " << AndroidProp("ro.product.manufacturer") << " " << AndroidProp("ro.product.model") << "\n";
 		f << "soc: " << AndroidProp("ro.soc.manufacturer") << " " << AndroidProp("ro.soc.model") << " (" << AndroidProp("ro.board.platform") << ")\n";
 		f << "android: " << AndroidProp("ro.build.version.release") << "\n";
-#endif
 		f << "cpus: " << CpuCount() << "\n";
 		f << "gpu: " << gpu << "\n";
 		f << "driver: " << driver << "\n";
-#if BOOST_PLAT_ANDROID
 		f << "custom_driver: " << (config.custom_driver_path.GetValue().empty() ? "none" : config.custom_driver_path.GetValue()) << "\n";
-#endif
 		f << "async_compile: " << (config.async_compile.GetValue() ? 1 : 0) << "\n";
 		f << "vsync: " << config.vsync.GetValue() << "\n";
 		f << "accurate_barriers: " << (config.vk_accurate_barriers.GetValue() ? 1 : 0) << "\n";
@@ -556,11 +534,7 @@ namespace PerfLog
 		threads << "t_s,tid,name,cpu_pct\n";
 		frames << "t_ms,ft_ms\n";
 
-#if BOOST_OS_LINUX || BOOST_PLAT_ANDROID
 		const double ticksPerSecond = (double)sysconf(_SC_CLK_TCK);
-#else
-		const double ticksPerSecond = 100.0;
-#endif
 		auto prevTicks = ReadThreadTicks();
 		auto prevTime = Clock::now();
 		bool infoWritten = false;
@@ -749,11 +723,7 @@ namespace PerfLog
 		s_full = GetConfig().perf_log.GetValue();
 		const std::time_t now = std::time(nullptr);
 		std::tm tm{};
-#if BOOST_OS_WINDOWS
-		localtime_s(&tm, &now);
-#else
 		localtime_r(&now, &tm);
-#endif
 		char stamp[32];
 		std::strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", &tm);
 		const fs::path dir = ActiveSettings::GetUserDataPath("perf") / fmt::format("{}_{:016x}", stamp, CafeSystem::GetForegroundTitleId());

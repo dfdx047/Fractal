@@ -33,8 +33,6 @@ add_library(CemuInput
 	emulated/ClassicController.h
 )
 
-set_property(TARGET CemuInput PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 cemu_use_precompiled_header(CemuInput)
 
 if (ENABLE_LIBUSB)

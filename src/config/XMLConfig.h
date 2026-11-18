@@ -6,9 +6,7 @@
 
 #include <string>
 #include <mutex>
-#if !BOOST_OS_WINDOWS
 #include <unistd.h>
-#endif
 
 template <typename T>
 concept HasConstCharConstructor = requires { T(std::declval<const char*>()); };
@@ -411,11 +409,7 @@ public:
 		}
 
 		FILE* file = nullptr;
-#if BOOST_OS_WINDOWS
-        file = _wfopen(tmp_name.c_str(), L"wb");
-#else
 		file = fopen(boost::nowide::narrow(tmp_name).c_str(), "wb");
-#endif
         if (!file)
         {
 			cemuLog_logDebug(LogType::Force, "XMLConfig::Save > failed \"{}\" with error {}", boost::nowide::narrow(filename), errno);
@@ -440,9 +434,7 @@ public:
 		// flush to the storage before the rename: without it a power loss or reboot right after a save can leave
 		// the renamed file full of zeros (seen on Android/f2fs: settings.xml lost all game paths)
 		fflush(file);
-#if !BOOST_OS_WINDOWS
 		fsync(fileno(file));
-#endif
 		fclose(file);
 
 		if (!success)

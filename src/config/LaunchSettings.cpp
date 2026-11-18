@@ -19,13 +19,8 @@ void requireConsole();
 
 std::optional<int> LaunchSettings::HandleCommandline(const wchar_t* lpCmdLine)
 {
-	#if BOOST_OS_WINDOWS
-	const std::vector<std::wstring> args = boost::program_options::split_winmain(lpCmdLine);
-	return HandleCommandline(args);
-	#else
 	cemu_assert_unimplemented();
 	return 1;
-	#endif
 }
 
 std::optional<int> LaunchSettings::HandleCommandline(int argc, wchar_t* argv[])
@@ -59,9 +54,7 @@ std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstr
 	desc.add_options()
 		("help,h", "This help screen")
 		("version,v", "Displays the version of Cemu")
-#if !BOOST_OS_WINDOWS
 		("verbose", "Log to stdout")
-#endif
 
 		("game,g", po::wvalue<std::wstring>(), "Path of game to launch")
 		("title-id,t", po::value<std::string>(), "Title ID of the title to be launched (overridden by --game)")
@@ -223,13 +216,6 @@ std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstr
 			for (const auto& argument : vm["cos-mounts"].as<std::vector<std::wstring>>())
 			{
 				sint32 winDriveColonOffset = 0;
-#if BOOST_OS_WINDOWS
-				// on Windows a path may start with \\?\C:\ or C:\ (where C can be an arbitrary drive letter), but the delimiter is also a colon, so filter out the drive colon
-				static const std::wregex winDrivePrefixRegex(LR"(^(?:\\\\\?\\)?[A-Za-z]:)");
-				std::wsmatch winDrivePrefixMatch;
-				if (std::regex_search(argument, winDrivePrefixMatch, winDrivePrefixRegex))
-					winDriveColonOffset = static_cast<sint32>(winDrivePrefixMatch.length());
-#endif
 				size_t colonLocation = argument.find(L':', winDriveColonOffset);
 				if (colonLocation == std::wstring::npos)
 				{

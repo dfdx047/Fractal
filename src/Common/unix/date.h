@@ -79,13 +79,8 @@
 # endif
 #endif
 
-#ifdef _MSC_VER
-#   pragma warning(push)
-// warning C4127: conditional expression is constant
-#   pragma warning(disable : 4127)
-#endif
 
-#if (defined(__GNUC__) && __GNUC__ < 5) && !defined(__clang__) && !defined(_MSC_VER)
+#if (defined(__GNUC__) && __GNUC__ < 5) && !defined(__clang__)
 #  define OPERATOR_LITERAL(suffix) operator"" _##suffix
 #else
 #  define OPERATOR_LITERAL(suffix) operator""_##suffix
@@ -102,26 +97,7 @@ namespace date
 #  define ONLY_C_LOCALE 0
 #endif
 
-#if defined(_MSC_VER) && (!defined(__clang__) || (_MSC_VER < 1910))
-// MSVC
-#  ifndef _SILENCE_CXX17_UNCAUGHT_EXCEPTION_DEPRECATION_WARNING
-#    define _SILENCE_CXX17_UNCAUGHT_EXCEPTION_DEPRECATION_WARNING
-#  endif
-#  if _MSC_VER < 1910
-//   before VS2017
-#    define CONSTDATA const
-#    define CONSTCD11
-#    define CONSTCD14
-#    define NOEXCEPT _NOEXCEPT
-#  else
-//   VS2017 and later
-#    define CONSTDATA constexpr const
-#    define CONSTCD11 constexpr
-#    define CONSTCD14 constexpr
-#    define NOEXCEPT noexcept
-#  endif
-
-#elif defined(__SUNPRO_CC) && __SUNPRO_CC <= 0x5150
+#if defined(__SUNPRO_CC) && __SUNPRO_CC <= 0x5150
 // Oracle Developer Studio 12.6 and earlier
 #  define CONSTDATA constexpr const
 #  define CONSTCD11 constexpr
@@ -159,11 +135,7 @@ namespace date
 #endif  // HAS_VOID_T
 
 #ifndef HAS_TM_ZONE
-#  if defined(__GLIBC__) || defined(__ANDROID__) || (defined(__GNUC__) && __GNUC__ > 4)
 #    define HAS_TM_ZONE 1
-#  else
-#    define HAS_TM_ZONE 0
-#  endif
 #endif  // HAS_TM_ZONE
 
 // Protect from Oracle sun macro
@@ -974,7 +946,6 @@ template<class CharT, class Traits>
 std::basic_ostream<CharT, Traits>&
 operator<<(std::basic_ostream<CharT, Traits>& os, const year_month_weekday_last& ymwdl);
 
-#if !defined(_MSC_VER) || (_MSC_VER >= 1900)
 inline namespace literals
 {
 
@@ -982,7 +953,6 @@ CONSTCD11 date::day  OPERATOR_LITERAL(d)(unsigned long long d) NOEXCEPT;
 CONSTCD11 date::year OPERATOR_LITERAL(y)(unsigned long long y) NOEXCEPT;
 
 }  // inline namespace literals
-#endif // !defined(_MSC_VER) || (_MSC_VER >= 1900)
 
 // CONSTDATA date::month January{1};
 // CONSTDATA date::month February{2};
@@ -1980,7 +1950,6 @@ operator<<(std::basic_ostream<CharT, Traits>& os, const weekday& wd)
     return os;
 }
 
-#if !defined(_MSC_VER) || (_MSC_VER >= 1900)
 inline namespace literals
 {
 
@@ -1999,7 +1968,6 @@ OPERATOR_LITERAL(y)(unsigned long long y) NOEXCEPT
 {
     return date::year(static_cast<int>(y));
 }
-#endif  // !defined(_MSC_VER) || (_MSC_VER >= 1900)
 
 CONSTDATA date::last_spec last{};
 
@@ -2024,9 +1992,7 @@ CONSTDATA date::weekday thu{4u};
 CONSTDATA date::weekday fri{5u};
 CONSTDATA date::weekday sat{6u};
 
-#if !defined(_MSC_VER) || (_MSC_VER >= 1900)
 }  // inline namespace literals
-#endif
 
 CONSTDATA date::month January{1};
 CONSTDATA date::month February{2};
@@ -8251,7 +8217,6 @@ public:
 #endif  // HAS_STRING_VIEW
 };
 
-#ifdef _MSC_VER
 
 template <class Parsable, class CharT, class Traits, class Alloc>
 std::basic_istream<CharT, Traits>&
@@ -8356,112 +8321,6 @@ parse(const CharT* format, Parsable& tp,
     return {format, tp, &abbrev, &offset};
 }
 
-#else  // !defined _MSC_VER
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-std::basic_istream<CharT, Traits>&
-operator>>(std::basic_istream<CharT, Traits>& is,
-           const parse_manip<Parsable, CharT, Traits, Alloc>& x)
-{
-    return date::from_stream(is, x.format_.c_str(), x.tp_, x.abbrev_, x.offset_);
-}
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-inline
-auto
-parse(const std::basic_string<CharT, Traits, Alloc>& format, Parsable& tp)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT, Traits>&>(),
-                            format.c_str(), tp),
-                parse_manip<Parsable, CharT, Traits, Alloc>{format, tp})
-{
-    return {format, tp};
-}
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-inline
-auto
-parse(const std::basic_string<CharT, Traits, Alloc>& format, Parsable& tp,
-      std::basic_string<CharT, Traits, Alloc>& abbrev)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT, Traits>&>(),
-                            format.c_str(), tp, &abbrev),
-                parse_manip<Parsable, CharT, Traits, Alloc>{format, tp, &abbrev})
-{
-    return {format, tp, &abbrev};
-}
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-inline
-auto
-parse(const std::basic_string<CharT, Traits, Alloc>& format, Parsable& tp,
-      std::chrono::minutes& offset)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT, Traits>&>(),
-                            format.c_str(), tp,
-                            std::declval<std::basic_string<CharT, Traits, Alloc>*>(),
-                            &offset),
-                parse_manip<Parsable, CharT, Traits, Alloc>{format, tp, nullptr, &offset})
-{
-    return {format, tp, nullptr, &offset};
-}
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-inline
-auto
-parse(const std::basic_string<CharT, Traits, Alloc>& format, Parsable& tp,
-      std::basic_string<CharT, Traits, Alloc>& abbrev, std::chrono::minutes& offset)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT, Traits>&>(),
-                            format.c_str(), tp, &abbrev, &offset),
-                parse_manip<Parsable, CharT, Traits, Alloc>{format, tp, &abbrev, &offset})
-{
-    return {format, tp, &abbrev, &offset};
-}
-
-// const CharT* formats
-
-template <class Parsable, class CharT>
-inline
-auto
-parse(const CharT* format, Parsable& tp)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT>&>(), format, tp),
-                parse_manip<Parsable, CharT>{format, tp})
-{
-    return {format, tp};
-}
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-inline
-auto
-parse(const CharT* format, Parsable& tp, std::basic_string<CharT, Traits, Alloc>& abbrev)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT, Traits>&>(), format,
-                            tp, &abbrev),
-                parse_manip<Parsable, CharT, Traits, Alloc>{format, tp, &abbrev})
-{
-    return {format, tp, &abbrev};
-}
-
-template <class Parsable, class CharT>
-inline
-auto
-parse(const CharT* format, Parsable& tp, std::chrono::minutes& offset)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT>&>(), format,
-                            tp, std::declval<std::basic_string<CharT>*>(), &offset),
-                parse_manip<Parsable, CharT>{format, tp, nullptr, &offset})
-{
-    return {format, tp, nullptr, &offset};
-}
-
-template <class Parsable, class CharT, class Traits, class Alloc>
-inline
-auto
-parse(const CharT* format, Parsable& tp,
-      std::basic_string<CharT, Traits, Alloc>& abbrev, std::chrono::minutes& offset)
-    -> decltype(date::from_stream(std::declval<std::basic_istream<CharT, Traits>&>(), format,
-                            tp, &abbrev, &offset),
-                parse_manip<Parsable, CharT, Traits, Alloc>{format, tp, &abbrev, &offset})
-{
-    return {format, tp, &abbrev, &offset};
-}
-
-#endif  // !defined _MSC_VER
 
 // duration streaming
 
@@ -8477,9 +8336,6 @@ operator<<(std::basic_ostream<CharT, Traits>& os,
 
 }  // namespace date
 
-#ifdef _MSC_VER
-#   pragma warning(pop)
-#endif
 
 #ifdef __GNUC__
 # pragma GCC diagnostic pop

@@ -49,7 +49,6 @@ public:
 	[[nodiscard]] const std::array< std::optional<std::string>, 8>& GetControllerProfile() const { return m_controllerProfile; }
 	void SetControllerProfile(size_t index, std::optional<std::string> profile) { m_controllerProfile.at(index) = std::move(profile); }
 
-#if BOOST_PLAT_ANDROID
   public:
 	struct DriverSetting
 	{
@@ -70,7 +69,6 @@ public:
   private:
 	DriverSetting m_driverSetting;
 
-#endif
 
   private:
 	uint64_t m_title_id = 0;

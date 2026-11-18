@@ -193,24 +193,13 @@ enum class CafeConsoleLanguage
 };
 ENABLE_ENUM_ITERATORS(CafeConsoleLanguage, CafeConsoleLanguage::JA, CafeConsoleLanguage::TW);
 
-#if BOOST_OS_WINDOWS
-enum class CrashDump
-{
-	Disabled,
-	Lite,
-	Full
-};
-ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Full);
-#elif BOOST_OS_UNIX
 enum class CrashDump
 {
 	Disabled,
 	Enabled
 };
 ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
-#endif
 
-#if BOOST_PLAT_ANDROID
 enum class DriverSettingMode
 {
 	Global,
@@ -218,7 +207,6 @@ enum class DriverSettingMode
 	Custom,
 };
 ENABLE_ENUM_ITERATORS(DriverSettingMode, DriverSettingMode::Global, DriverSettingMode::Custom);
-#endif
 
 template <>
 struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
@@ -360,24 +348,6 @@ struct fmt::formatter<CafeConsoleLanguage> : formatter<string_view> {
 	}
 };
 
-#if BOOST_OS_WINDOWS
-template <>
-struct fmt::formatter<CrashDump> : formatter<string_view> {
-	template <typename FormatContext>
-	auto format(const CrashDump v, FormatContext &ctx) {
-		string_view name;
-		switch (v)
-		{
-		case CrashDump::Disabled: name = "Disabled"; break;
-		case CrashDump::Lite: name = "Lite"; break;
-		case CrashDump::Full: name = "Full"; break;
-		default: name = "unknown"; break;
-
-		}
-		return formatter<string_view>::format(name, ctx);
-	}
-};
-#elif BOOST_OS_UNIX
 template <>
 struct fmt::formatter<CrashDump> : formatter<string_view> {
 	template <typename FormatContext>
@@ -393,7 +363,6 @@ struct fmt::formatter<CrashDump> : formatter<string_view> {
 		return formatter<string_view>::format(name, ctx);
 	}
 };
-#endif
 
 
 struct CemuConfig
@@ -417,18 +386,12 @@ struct CemuConfig
 	ConfigValue<std::string> proxy_server{};
 
 	// temporary workaround because feature crashes on macOS
-#if BOOST_OS_MACOS
-#define DISABLE_SCREENSAVER_DEFAULT false
-#else
 #define DISABLE_SCREENSAVER_DEFAULT true
-#endif
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
 	ConfigValue<bool> play_boot_sound{false};
 
-#if BOOST_PLAT_ANDROID
 	ConfigValue<std::string> custom_driver_path{};
-#endif
 
 	std::vector<std::string> game_paths;
 	std::mutex game_cache_entries_mutex;

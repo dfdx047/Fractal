@@ -3,9 +3,7 @@
 #include "util/math/vector2.h"
 #include <vulkan/vulkan_core.h>
 
-#if BOOST_PLAT_ANDROID
 #include <android/native_window.h>
-#endif
 
 struct SwapchainInfoVk
 {
@@ -62,9 +60,7 @@ struct SwapchainInfoVk
 
 	bool mainWindow{};
 
-#if BOOST_PLAT_ANDROID
 	bool surfaceWasLost = false;
-#endif
 
 	bool m_shouldRecreate = false;
 	bool m_forceFifo = false; // set while frame generation is active (TV only)
@@ -101,10 +97,8 @@ private:
 	VkFence m_awaitableFence = VK_NULL_HANDLE;
 	VkSemaphore m_currentSemaphore = VK_NULL_HANDLE;
 
-#if BOOST_PLAT_ANDROID
 	void RecreateSurface();
 	ANativeWindow* m_currentWindow = nullptr;
-#endif
 
 	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 };

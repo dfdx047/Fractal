@@ -1,9 +1,5 @@
 #pragma once
 
-#if BOOST_OS_WINDOWS
-#include "input/api/DirectInput/DirectInputControllerProvider.h"
-#include "input/api/XInput/XInputControllerProvider.h"
-#endif
 
 #ifdef SUPPORTS_WIIMOTE
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
@@ -17,10 +13,8 @@
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/GameCube/GameCubeControllerProvider.h"
 
-#if BOOST_PLAT_ANDROID
 #include "input/api/Android/AndroidControllerProvider.h"
 #include "input/api/Device/DeviceControllerProvider.h"
-#endif
 
 #include "input/emulated/VPADController.h"
 #include "input/emulated/WPADController.h"

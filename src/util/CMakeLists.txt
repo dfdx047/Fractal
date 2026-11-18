@@ -14,7 +14,6 @@ add_library(CemuUtil
   crypto/crc32.h
   crypto/md5.cpp
   crypto/md5.h
-  DXGIWrapper/DXGIWrapper.h
   EventService.h
   Fiber/Fiber.h
   helpers/ClassWrapper.h
@@ -70,29 +69,14 @@ add_library(CemuUtil
   Zir/Passes/ZpIRRegisterAllocator.cpp
 )
 
-if(WIN32)
-	target_sources(CemuUtil PRIVATE Fiber/FiberWin.cpp)
-	target_sources(CemuUtil PRIVATE MemMapper/MemMapperWin.cpp)
-	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoWin.cpp)
-elseif(UNIX)
-  if(ANDROID)
-    target_sources(CemuUtil PRIVATE Fiber/FiberFContext.cpp)
-    target_link_libraries(CemuUtil PRIVATE Boost::context)
-  else()
-    target_sources(CemuUtil PRIVATE Fiber/FiberUContext.cpp)
-  endif()
-	target_sources(CemuUtil PRIVATE MemMapper/MemMapperUnix.cpp)
-	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoUnix.cpp)
-	if(NOT APPLE)
-		target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoLinux.cpp)
-	else()
-		target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoMac.cpp)
-	endif()
-else()
-	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoStub.cpp)
-endif()
-
-set_property(TARGET CemuUtil PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+target_sources(CemuUtil PRIVATE
+  Fiber/FiberFContext.cpp
+  Fiber/FiberFContext.h
+  MemMapper/MemMapperUnix.cpp
+  SystemInfo/SystemInfoUnix.cpp
+  SystemInfo/SystemInfoLinux.cpp
+)
+target_link_libraries(CemuUtil PRIVATE Boost::context)
 
 cemu_use_precompiled_header(CemuUtil)
 

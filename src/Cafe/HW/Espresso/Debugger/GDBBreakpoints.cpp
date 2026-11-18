@@ -74,9 +74,7 @@ void GDBServer::ExecutionBreakpoint::Restore()
 
 namespace coreinit
 {
-#if BOOST_OS_LINUX
 	std::vector<pid_t>& OSGetSchedulerThreadIds();
-#endif
 
 	std::vector<std::thread::native_handle_type>& OSGetSchedulerThreads();
 }

@@ -911,7 +911,6 @@ namespace nlibcurl
 			}
 		};
 
-#if BOOST_OS_UNIX
 		for (int s = 0; s < hostMaxFd + 1; s++)
 		{
 			if (FD_ISSET(s, &hostReadFd))
@@ -921,14 +920,6 @@ namespace nlibcurl
 			if (FD_ISSET(s, &hostExceptionFd))
 				hostFdSet(s, exceptionFd);
 		}
-#else
-		for (uint32 i = 0; i < hostReadFd.fd_count; i++)
-			hostFdSet(hostReadFd.fd_array[i], readFd);
-		for (uint32 i = 0; i < hostWriteFd.fd_count; i++)
-			hostFdSet(hostWriteFd.fd_array[i], writeFd);
-		for (uint32 i = 0; i < hostExceptionFd.fd_count; i++)
-			hostFdSet(hostExceptionFd.fd_array[i], exceptionFd);
-#endif
 
 		*maxFd = guestMaxFd;
 		return result;

@@ -5,9 +5,7 @@
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
 #include <unordered_map>
-#if !BOOST_OS_WINDOWS
 #include <dlfcn.h>
-#endif
 
 
 uint64 _rdtscLastMeasure = 0;
@@ -181,14 +179,9 @@ uint64 PPCTimer_getFromRDTSC()
 		_rdtscLastMeasure = rdtscCurrentMeasure; // only travel forward in time
 
 	uint8 c = 0;
-	#if BOOST_OS_WINDOWS
-	c = _addcarry_u64(c, _rdtscAcc.low, diff.low, &_rdtscAcc.low);
-	_addcarry_u64(c, _rdtscAcc.high, diff.high, &_rdtscAcc.high);
-	#else
 	// requires casting because of long / long long nonesense
 	c = _addcarry_u64(c, _rdtscAcc.low, diff.low, (unsigned long long*)&_rdtscAcc.low);
 	_addcarry_u64(c, _rdtscAcc.high, diff.high, (unsigned long long*)&_rdtscAcc.high);
-	#endif
 
 	uint64 remainder;
 	uint64 elapsedTick = _udiv128(_rdtscAcc.high, _rdtscAcc.low, _rdtscFrequency, &remainder);

@@ -93,11 +93,7 @@ void MMURange::mapMem()
 	{
 		std::string errorMsg = _tr("Unable to allocate {} memory", name);
 		WindowSystem::ShowErrorDialog(errorMsg, _tr("Error"));
-		#if BOOST_OS_WINDOWS
-		ExitProcess(-1);
-		#else
 		exit(-1);
-		#endif
 	}
 	m_isMapped = true;
 }
@@ -129,7 +125,6 @@ MMURange mmuRange_HIGHMEM				{ 0xFFFFF000, 0x00001000, MMU_MEM_AREA_ID::CPU_PER_
 void memory_init()
 {
 	// reserve a continous range of 4GB
-#if !BOOST_OS_WINDOWS
 	// The coreinit heaps (MEMAllocFromExpHeapEx, MEMGetAllocatableSizeForExpHeapEx, ...) align host pointers, so a guest
 	// address only gets the requested alignment if memory_base has it too. mmap only guarantees page alignment: Watch Dogs
 	// asks for a 128 KiB aligned MEM2 arena, got one aligned to 16 KiB and its bucket allocator then freed blocks into the
@@ -148,7 +143,6 @@ void memory_init()
 			memory_base = aligned;
 		}
 	}
-#endif
 	if(!memory_base)
 		memory_base = (uint8*)MemMapper::ReserveMemory(nullptr, (size_t)0x100000000, MemMapper::PAGE_PERMISSION::P_RW);
 	cemuLog_log(LogType::Force, "Guest memory base: {:p}", (void*)memory_base);

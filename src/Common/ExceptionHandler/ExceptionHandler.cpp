@@ -8,9 +8,7 @@
 #include "Cafe/HW/Espresso/Debugger/GuestWatch.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
-#if BOOST_PLAT_ANDROID
 #include <android/log.h>
-#endif
 
 bool crashLogCreated = false;
 
@@ -33,7 +31,6 @@ void CrashLog_SetOutputChannels(bool writeToStdErr, bool writeToLogTxt)
     s_writeToLogTxt = writeToLogTxt;
 }
 
-#if BOOST_PLAT_ANDROID
 // stderr isn't shown anywhere on Android, so the crash log goes to logcat instead, one line at a time
 static std::string s_logcatLine;
 
@@ -58,7 +55,6 @@ static void CrashLog_WriteToLogcat(std::string_view text, bool newLine)
     }
     s_logcatLine.clear();
 }
-#endif
 
 // outputs to both stderr and log.txt
 void CrashLog_WriteLine(std::string_view text, bool newLine)
@@ -67,13 +63,7 @@ void CrashLog_WriteLine(std::string_view text, bool newLine)
         cemuLog_writeLineToLog(text, false, newLine);
     if(s_writeToStdErr)
     {
-#if BOOST_PLAT_ANDROID
         CrashLog_WriteToLogcat(text, newLine);
-#else
-        fwrite(text.data(), sizeof(char), text.size(), stderr);
-        if(newLine)
-            fwrite("\n", sizeof(char), 1, stderr);
-#endif
     }
 }
 

@@ -273,7 +273,6 @@ bool GameProfile::Load(uint64_t title_id)
 			}
 
 		}
-#if BOOST_PLAT_ANDROID
 		else if (boost::iequals(iniParser.GetCurrentSectionName(), "AndroidDriver"))
 		{
 			gameProfile_loadEnumOption(iniParser, "mode", m_driverSetting.mode);
@@ -283,7 +282,6 @@ bool GameProfile::Load(uint64_t title_id)
 				m_driverSetting.customPath = iniParser.FindOption("customPath");
 			}
 		}
-#endif
 	}
 	return true;
 }
@@ -335,13 +333,11 @@ void GameProfile::Save(uint64_t title_id)
 
 	fs->writeLine("");
 
-#if BOOST_PLAT_ANDROID
 	fs->writeLine("[AndroidDriver]");
 	fs->writeLine(fmt::format("{} = {}", "mode", m_driverSetting.mode).c_str());
 	if (m_driverSetting.mode == DriverSettingMode::Custom && m_driverSetting.customPath.has_value())
 		fs->writeLine(fmt::format("{} = {}", "customPath", m_driverSetting.customPath.value()).c_str());
 	fs->writeLine("");
-#endif
 
 #undef WRITE_OPTIONAL_ENTRY
 #undef WRITE_ENTRY

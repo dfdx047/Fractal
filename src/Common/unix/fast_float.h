@@ -131,18 +131,9 @@ from_chars_result from_chars_advanced(const char *first, const char *last,
 
 #define FASTFLOAT_64BIT
 
-#if ((defined(_WIN32) || defined(_WIN64)) && !defined(__clang__))
-#include <intrin.h>
-#endif
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#define FASTFLOAT_VISUAL_STUDIO 1
-#endif
 
-#ifdef _WIN32
-#define FASTFLOAT_IS_BIG_ENDIAN 0
-#else
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
 #include <machine/endian.h>
 #elif defined(sun) || defined(__sun)
 #include <sys/byteorder.h>
@@ -164,7 +155,6 @@ from_chars_result from_chars_advanced(const char *first, const char *last,
 #define FASTFLOAT_IS_BIG_ENDIAN 0
 #else
 #define FASTFLOAT_IS_BIG_ENDIAN 1
-#endif
 #endif
 
 #ifdef FASTFLOAT_VISUAL_STUDIO
@@ -272,7 +262,7 @@ fastfloat_really_inline uint64_t _umul128(uint64_t ab, uint64_t cd,
 fastfloat_really_inline value128 full_multiplication(uint64_t a,
                                                      uint64_t b) {
   value128 answer;
-#if defined(FASTFLOAT_32BIT) || (defined(_WIN64) && !defined(__clang__))
+#if defined(FASTFLOAT_32BIT)
   answer.low = _umul128(a, b, &answer.high); // _umul128 not available on ARM64
 #elif defined(FASTFLOAT_64BIT)
   __uint128_t r = ((__uint128_t)a) * b;
