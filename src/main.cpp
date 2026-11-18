@@ -25,11 +25,6 @@
 #include "audio/IAudioAPI.h"
 #include "audio/IAudioInputAPI.h"
 
-#ifdef HAS_SDL
-#define SDL_MAIN_HANDLED
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-#endif
 
 std::atomic_bool g_isGPUInitFinished = false;
 

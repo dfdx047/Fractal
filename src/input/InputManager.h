@@ -1,17 +1,10 @@
 #pragma once
 
 
-#ifdef SUPPORTS_WIIMOTE
-#include "input/api/Wiimote/WiimoteControllerProvider.h"
-#endif
 
-#ifdef HAS_SDL
-#include "input/api/SDL/SDLControllerProvider.h"
-#endif
 
 #include "input/api/Keyboard/KeyboardControllerProvider.h"
 #include "input/api/DSU/DSUControllerProvider.h"
-#include "input/api/GameCube/GameCubeControllerProvider.h"
 
 #include "input/api/Android/AndroidControllerProvider.h"
 #include "input/api/Device/DeviceControllerProvider.h"

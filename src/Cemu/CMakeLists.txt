@@ -31,14 +31,6 @@ add_library(CemuComponents
   Tools/DownloadManager/DownloadManager.h
 )
 
-if(ENABLE_DISCORD_RPC)
-target_sources(CemuComponents PRIVATE
-		DiscordPresence/DiscordPresence.cpp
-		DiscordPresence/DiscordPresence.h
-		DiscordPresence/DiscordRPCLite.cpp
-		DiscordPresence/DiscordRPCLite.h)
-endif()
-
 cemu_use_precompiled_header(CemuComponents)
 
 target_include_directories(CemuComponents PUBLIC "../")

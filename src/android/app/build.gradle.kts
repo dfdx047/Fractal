@@ -126,13 +126,8 @@ android {
                     "-DANDROID_STL=c++_shared",
                     "-DENABLE_VCPKG=ON",
                     "-DVCPKG_TARGET_ANDROID=ON",
-                    "-DENABLE_SDL=OFF",
-                    "-DENABLE_BLUEZ=OFF",
                     "-DBUNDLE_SPEEX=ON",
-                    "-DENABLE_DISCORD_RPC=OFF",
-                    "-DENABLE_NSYSHID_LIBUSB=OFF",
                     "-DENABLE_WAYLAND=OFF",
-                    "-DENABLE_HIDAPI=OFF"
                 )
                 if (versionMajor != null && versionMinor != null) {
                     arguments.addAll(

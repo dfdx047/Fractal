@@ -1,7 +1,6 @@
 #include "input/emulated/WiimoteController.h"
 
 #include "input/api/Controller.h"
-#include "input/api/Wiimote/NativeWiimoteController.h"
 
 WiimoteController::WiimoteController(size_t player_index)
 	: WPADController(player_index, kDataFormat_CORE_ACC_DPD)
@@ -26,50 +25,8 @@ uint32 WiimoteController::get_emulated_button_flag(uint32 id) const
 
 bool WiimoteController::set_default_mapping(const std::shared_ptr<ControllerBase>& controller)
 {
-	std::vector<std::pair<uint64, uint64>> mapping;
-	switch (controller->api())
-	{
-	case InputAPI::Wiimote: {
-		const auto sdl_controller = std::static_pointer_cast<NativeWiimoteController>(controller);
-		mapping =
-		{
-			{kButtonId_A, kWiimoteButton_A},
-			{kButtonId_B, kWiimoteButton_B},
-			{kButtonId_1, kWiimoteButton_One},
-			{kButtonId_2, kWiimoteButton_Two},
-
-			{kButtonId_Home, kWiimoteButton_Home},
-
-			{kButtonId_Plus, kWiimoteButton_Plus},
-			{kButtonId_Minus, kWiimoteButton_Minus},
-
-			{kButtonId_Up, kWiimoteButton_Up},
-			{kButtonId_Down, kWiimoteButton_Down},
-			{kButtonId_Left, kWiimoteButton_Left},
-			{kButtonId_Right, kWiimoteButton_Right},
-
-			{kButtonId_Nunchuck_Z, kWiimoteButton_Z},
-			{kButtonId_Nunchuck_C, kWiimoteButton_C},
-
-			{kButtonId_Nunchuck_Up, kAxisYP},
-			{kButtonId_Nunchuck_Down, kAxisYN},
-			{kButtonId_Nunchuck_Left, kAxisXN},
-			{kButtonId_Nunchuck_Right, kAxisXP},
-		};
-	}
-	}
-
-	bool mapping_updated = false;
-	std::for_each(mapping.cbegin(), mapping.cend(), [this, &controller, &mapping_updated](const auto& m)
-		{
-			if (m_mappings.find(m.first) == m_mappings.cend())
-			{
-				set_mapping(m.first, controller, m.second);
-				mapping_updated = true;
-			}
-		});
-
-	return mapping_updated;
+	// only native Wii remotes, a desktop backend, had a default mapping
+	return false;
 }
 
 glm::vec2 WiimoteController::get_axis() const

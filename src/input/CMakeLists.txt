@@ -35,59 +35,7 @@ add_library(CemuInput
 
 cemu_use_precompiled_header(CemuInput)
 
-if (ENABLE_LIBUSB)
-	target_sources(CemuInput PRIVATE
-		api/GameCube/GameCubeController.cpp
-		api/GameCube/GameCubeControllerProvider.h
-		api/GameCube/GameCubeControllerProvider.cpp
-		api/GameCube/GameCubeController.h
-	)
-endif()
-
-if(WIN32)
-	# XInput
-	target_sources(CemuInput PRIVATE
-		api/XInput/XInputControllerProvider.cpp
-		api/XInput/XInputControllerProvider.h
-		api/XInput/XInputController.cpp
-		api/XInput/XInputController.h
-	)
-
-	# DirectInput
-	target_sources(CemuInput PRIVATE
-		api/DirectInput/DirectInputControllerProvider.cpp
-		api/DirectInput/DirectInputController.h
-		api/DirectInput/DirectInputControllerProvider.h
-		api/DirectInput/DirectInputController.cpp
-	)
-endif()
-
-if (SUPPORTS_WIIMOTE)
-	target_compile_definitions(CemuInput PUBLIC SUPPORTS_WIIMOTE)
-	target_sources(CemuInput PRIVATE
-			api/Wiimote/WiimoteControllerProvider.h
-			api/Wiimote/WiimoteControllerProvider.cpp
-			api/Wiimote/WiimoteMessages.h
-			api/Wiimote/NativeWiimoteController.h
-			api/Wiimote/NativeWiimoteController.cpp
-			api/Wiimote/WiimoteDevice.h
-	)
-	if (ENABLE_HIDAPI)
-		target_sources(CemuInput PRIVATE
-				api/Wiimote/hidapi/HidapiWiimote.cpp
-				api/Wiimote/hidapi/HidapiWiimote.h)
-	endif ()
-
-	if (ENABLE_BLUEZ)
-		target_sources(CemuInput PRIVATE
-				api/Wiimote/l2cap/L2CapWiimote.cpp
-				api/Wiimote/l2cap/L2CapWiimote.h)
-	endif()
-endif ()
-
-
-if(ANDROID)
-	target_sources(CemuInput PRIVATE
+target_sources(CemuInput PRIVATE
 		api/Android/AndroidController.cpp
 		api/Android/AndroidController.h
 		api/Android/AndroidControllerProvider.cpp
@@ -99,17 +47,6 @@ if(ANDROID)
 		api/Device/DeviceControllerProvider.cpp
 		api/Device/DeviceControllerProvider.h
 	)
-endif()
-
-if(ENABLE_SDL)
-	target_sources(CemuInput PRIVATE
-		api/SDL/SDLController.cpp
-		api/SDL/SDLControllerProvider.cpp
-		api/SDL/SDLController.h
-		api/SDL/SDLControllerProvider.h
-	)
-	target_link_libraries(CemuInput PRIVATE	SDL3::SDL3)
-endif()
 
 target_include_directories(CemuInput PUBLIC "../")
 
@@ -117,7 +54,3 @@ target_link_libraries(CemuInput PRIVATE
 	CemuCommon
 	CemuGui
 )
-
-if (ENABLE_BLUEZ)
-	target_link_libraries(CemuInput PRIVATE bluez::bluez)
-endif ()

@@ -80,13 +80,6 @@ target_link_libraries(CemuUtil PRIVATE Boost::context)
 
 cemu_use_precompiled_header(CemuUtil)
 
-if (ENABLE_LIBUSB)
-  target_sources(CemuUtil PRIVATE
-    libusbWrapper/libusbWrapper.cpp
-    libusbWrapper/libusbWrapper.h
-  )
-endif()
-
 target_include_directories(CemuUtil PUBLIC "../")
 
 target_link_libraries(CemuUtil PRIVATE

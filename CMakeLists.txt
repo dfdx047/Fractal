@@ -112,31 +112,14 @@ endif()
 if (UNIX AND NOT APPLE)
 	option(ENABLE_WAYLAND "Build with Wayland support" ON)
 	option(ENABLE_FERAL_GAMEMODE "Enables Feral Interactive GameMode Support" ON)
-	option(ENABLE_BLUEZ "Build with Bluez support" ON)
 endif()
 
-option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
-
-# input backends
-if (WIN32)
-	option(ENABLE_XINPUT "Enables the usage of XInput" ON)
-	option(ENABLE_DIRECTINPUT "Enables the usage of DirectInput" ON)
-	add_compile_definitions(HAS_DIRECTINPUT)
-endif()
-
-option(ENABLE_HIDAPI "Build with HIDAPI" ON)
-option(ENABLE_SDL "Enables the SDLController backend" ON)
 option(ENABLE_LIBUSB "Build with libusb support" ON)
 
 if (ENABLE_LIBUSB)
 	add_compile_definitions(HAS_LIBUSB)
 endif()
 
-# audio backends
-if (WIN32)
-	option(ENABLE_DIRECTAUDIO "Enables the directaudio backend" ON)
-	option(ENABLE_XAUDIO "Enables the xaudio backend" ON)
-endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
 find_package(Threads REQUIRED)
@@ -155,11 +138,6 @@ find_package(OpenSSL COMPONENTS Crypto SSL REQUIRED)
 find_package(glm REQUIRED)
 find_package(fmt 12.1 REQUIRED)
 find_package(PNG REQUIRED)
-
-if(ENABLE_SDL)
-	find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
-	add_compile_definitions(HAS_SDL)
-endif()
 
 # glslang versions older than 11.11.0 define targets without a namespace
 if (NOT TARGET glslang::SPIRV AND TARGET SPIRV)
@@ -183,26 +161,11 @@ if (UNIX AND NOT APPLE AND NOT ANDROID)
 	endif()
 	find_package(GTK3 REQUIRED)
 
-	if(ENABLE_BLUEZ)
-		find_package(bluez REQUIRED)
-		set(SUPPORTS_WIIMOTE ON)
-		add_compile_definitions(HAS_BLUEZ)
-	endif()
-
 endif()
 
 # Vulkan is the only renderer; its functions are loaded at runtime
 include_directories("dependencies/Vulkan-Headers/include")
 add_compile_definitions(VK_NO_PROTOTYPES)
-
-if (ENABLE_DISCORD_RPC)
-	add_compile_definitions(ENABLE_DISCORD_RPC)
-endif()
-
-if (ENABLE_HIDAPI)
-	set(SUPPORTS_WIIMOTE ON)
-	add_compile_definitions(HAS_HIDAPI)
-endif ()
 
 if(UNIX AND NOT APPLE AND NOT ANDROID)
 	if(ENABLE_FERAL_GAMEMODE)
