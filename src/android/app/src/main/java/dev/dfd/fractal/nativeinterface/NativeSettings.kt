@@ -200,25 +200,11 @@ object NativeSettings {
     @JvmStatic
     external fun setOverlayCPUUsageEnabled(value: Boolean)
 
-    /** Not in the settings UI: per core times come from /proc/stat, which Android does not let apps read. */
-    @JvmStatic
-    external fun isOverlayCPUPerCoreUsageEnabled(): Boolean
-
-    @JvmStatic
-    external fun setOverlayCPUPerCoreUsageEnabled(value: Boolean)
-
     @JvmStatic
     external fun isOverlayRAMUsageEnabled(): Boolean
 
     @JvmStatic
     external fun setOverlayRAMUsageEnabled(value: Boolean)
-
-    /** Not in the settings UI: the renderer only reports VRAM on Windows (DXGI), so nothing shows on Android. */
-    @JvmStatic
-    external fun isOverlayVRAMUsageEnabled(): Boolean
-
-    @JvmStatic
-    external fun setOverlayVRAMUsageEnabled(value: Boolean)
 
     @JvmStatic
     external fun isOverlayDebugEnabled(): Boolean

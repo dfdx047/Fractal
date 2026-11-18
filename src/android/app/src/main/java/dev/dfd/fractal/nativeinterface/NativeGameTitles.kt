@@ -97,9 +97,6 @@ object NativeGameTitles {
     external fun setControllerProfileForTitle(gameTitleId: Long, index: Int, profile: String?)
 
     @JvmStatic
-    external fun titleHasShaderCacheFiles(gameTitleId: Long): Boolean
-
-    @JvmStatic
     external fun removeShaderCacheFilesForTitle(gameTitleId: Long)
 
     @JvmStatic

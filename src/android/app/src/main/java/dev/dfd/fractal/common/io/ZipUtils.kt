@@ -4,7 +4,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -22,8 +21,6 @@ fun unzip(stream: InputStream, targetDir: String) {
         }
     }
 }
-
-fun unzip(stream: InputStream, targetDir: Path) = unzip(stream, targetDir.toString())
 
 /** Every regular file under [dir] as (zip entry name, file): names relative to [dir], "/" separated, after [prefix]. */
 fun filesForZip(dir: File, prefix: String = ""): List<Pair<String, File>> {

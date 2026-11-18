@@ -165,12 +165,6 @@ object FractalIcons {
         moveTo(17f, 10f); lineTo(21f, 10f); moveTo(17f, 14f); lineTo(21f, 14f)
     }
 
-    val Key = icon("key") {
-        moveTo(8f, 9f); lineTo(11f, 12f); lineTo(8f, 15f); lineTo(5f, 12f); close()
-        moveTo(11f, 12f); lineTo(20f, 12f); lineTo(20f, 15f)
-        moveTo(16.5f, 12f); lineTo(16.5f, 14.5f)
-    }
-
     val Palette = icon("palette") {
         moveTo(12f, 3f); lineTo(21f, 19f); lineTo(3f, 19f); close()
         moveTo(12f, 11f); lineTo(16.5f, 19f)

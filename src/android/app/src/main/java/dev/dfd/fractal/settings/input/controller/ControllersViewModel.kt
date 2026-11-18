@@ -141,12 +141,6 @@ class ControllersViewModel(private val context: Context, val controllerIndex: In
         _wiimoteExtension.value = NativeInput.getWiimoteExtension(controllerIndex)
     }
 
-    fun setButtonToBind(buttonInfo: ButtonInfo) {
-        bindQueue = emptyList()
-        _bindQueueSize.value = 0
-        _buttonToBind.value = buttonInfo
-    }
-
     /** Binds [ids] one after the other, each with its full name ("Left stick: up"). */
     fun startBinding(ids: List<Int>) {
         val style = _choice.value.style ?: return
@@ -249,11 +243,6 @@ class ControllersViewModel(private val context: Context, val controllerIndex: In
     fun clearButtonMapping(buttonId: Int) {
         _controls.value -= buttonId
         NativeInput.clearControllerMapping(controllerIndex, buttonId)
-    }
-
-    fun clearAllMappings() {
-        _controls.value.keys.forEach { NativeInput.clearControllerMapping(controllerIndex, it) }
-        _controls.value = emptyMap()
     }
 
     private fun refreshControllerData() {

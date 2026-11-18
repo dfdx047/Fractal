@@ -56,13 +56,6 @@ object GameIcons {
         moveTo(4.5f, 14f); lineTo(4.5f, 20f); lineTo(19.5f, 20f); lineTo(19.5f, 14f)
     }
 
-    /** Floppy disk: game saves. */
-    val Save = icon("save") {
-        moveTo(4f, 4f); lineTo(17f, 4f); lineTo(20f, 7f); lineTo(20f, 20f); lineTo(4f, 20f); close()
-        moveTo(8f, 4f); lineTo(8f, 9f); lineTo(15f, 9f); lineTo(15f, 4f)
-        moveTo(7.5f, 20f); lineTo(7.5f, 14f); lineTo(16.5f, 14f); lineTo(16.5f, 20f)
-    }
-
     /** Lightning bolt: performance. */
     val Bolt = icon("bolt") {
         moveTo(13.5f, 3f); lineTo(5.5f, 13.5f); lineTo(11.5f, 13.5f); lineTo(10.5f, 21f); lineTo(18.5f, 10.5f)

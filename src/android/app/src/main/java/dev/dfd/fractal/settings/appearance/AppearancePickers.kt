@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import dev.dfd.fractal.common.settings.AppSettingsStore
 import dev.dfd.fractal.common.settings.GuiSettings
 import dev.dfd.fractal.common.settings.LibraryView
-import dev.dfd.fractal.common.ui.components.ThemedContent
 import dev.dfd.fractal.common.ui.fractal.focusRing
 import dev.dfd.fractal.common.ui.fractal.gamepadConfirm
 import dev.dfd.fractal.common.ui.fractal.screenFocusItem
@@ -401,10 +400,3 @@ fun SettingSlider(title: String, value: Int, onChange: (Int) -> Unit) {
     }
 }
 
-/** Preview of a whole theme + wallpaper combination, used by the welcome screen. */
-@Composable
-fun LivePreview(gui: GuiSettings, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.clip(FractalTheme.shapes.panel)) {
-        ThemedContent(gui, showBackground = true, content = content)
-    }
-}

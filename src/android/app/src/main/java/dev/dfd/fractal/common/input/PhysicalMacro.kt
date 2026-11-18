@@ -166,8 +166,6 @@ class TriggerRecorder {
     var deviceDescriptor: String? = null
         private set
 
-    val keys: Set<Int> get() = combo
-
     /** Returns the finished trigger once every key is up again, else null. */
     fun onKey(descriptor: String, keyCode: Int, down: Boolean): Set<Int>? {
         if (deviceDescriptor == null) {

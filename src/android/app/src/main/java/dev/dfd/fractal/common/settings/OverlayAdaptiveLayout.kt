@@ -24,9 +24,6 @@ data class LayoutBox(val left: Float, val top: Float, val right: Float, val bott
         left >= outer.left - tolerance && top >= outer.top - tolerance &&
             right <= outer.right + tolerance && bottom <= outer.bottom + tolerance
 
-    fun intersects(other: LayoutBox): Boolean =
-        left < other.right && other.left < right && top < other.bottom && other.top < bottom
-
     companion object {
         fun sized(left: Float, top: Float, width: Float, height: Float) =
             LayoutBox(left, top, left + width, top + height)
@@ -299,8 +296,6 @@ private class Placer(val unit: Float) {
     val small = SMALL * unit
     val margin = MARGIN * unit
     val gap = GAP * unit
-
-    fun shape(config: OverlayInputConfig) = LayoutShape(boxes.getValue(config), !config.isRectangular())
 
     /** True when no two controls are closer than half a gap. */
     fun noOverlaps(): Boolean {

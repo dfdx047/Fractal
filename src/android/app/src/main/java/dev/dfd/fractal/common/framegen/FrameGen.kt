@@ -43,9 +43,6 @@ fun frameGenRuntimeStatusToString(status: Int) = when (status) {
     else -> tr("Waiting for the game")
 }
 
-fun isLosslessDllInstalled() =
-    NativeFrameGen.getInstalledLosslessDllStatus() == LosslessDllStatus.OK
-
 /** Cheap check for places that run often: the DLL is only copied there after it was validated. */
 fun hasLosslessDll() = File(NativeFrameGen.getLosslessDllPath()).exists()
 
