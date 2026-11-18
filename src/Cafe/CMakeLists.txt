@@ -526,23 +526,13 @@ target_sources(CemuCafe PRIVATE
   HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h
 )
 
-if(ANDROID)
-  target_sources(CemuCafe PRIVATE
-    Filesystem/fscDeviceAndroidSAF.cpp
-    Filesystem/fscDeviceAndroidSAF.h
-  )
-  if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
-    target_link_libraries(CemuCafe PRIVATE adrenotools)
-  endif()
-endif()
-
-if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
-  target_sources(CemuCafe PRIVATE
-    HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.cpp
-    HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.h
-  )
-  target_link_libraries(CemuCafe PRIVATE xbyak_aarch64)
-endif()
+target_sources(CemuCafe PRIVATE
+  Filesystem/fscDeviceAndroidSAF.cpp
+  Filesystem/fscDeviceAndroidSAF.h
+  HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.cpp
+  HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.h
+)
+target_link_libraries(CemuCafe PRIVATE adrenotools xbyak_aarch64)
 
 cemu_use_precompiled_header(CemuCafe)
 
@@ -577,12 +567,7 @@ target_link_libraries(CemuCafe PRIVATE
 )
 
 if (ENABLE_LIBUSB)
-  if (ENABLE_VCPKG)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
-    target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
-  else ()
-    find_package(libusb MODULE REQUIRED)
-    target_link_libraries(CemuCafe PRIVATE libusb::libusb)
-  endif ()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+  target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
 endif()

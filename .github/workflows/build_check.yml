@@ -1,9 +1,0 @@
-name: Build check
-# Manual only: GitHub Actions minutes are limited, builds are made locally (Android Studio / Gradle).
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit

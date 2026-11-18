@@ -127,7 +127,6 @@ android {
                     "-DENABLE_VCPKG=ON",
                     "-DVCPKG_TARGET_ANDROID=ON",
                     "-DBUNDLE_SPEEX=ON",
-                    "-DENABLE_WAYLAND=OFF",
                 )
                 if (versionMajor != null && versionMinor != null) {
                     arguments.addAll(
