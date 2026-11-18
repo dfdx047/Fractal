@@ -57,6 +57,10 @@ android {
         versionName = getVersionName()
         versionCode = System.getenv("FRACTAL_VERSION_CODE")?.toIntOrNull() ?: 1
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // the emulator is arm64-only: no native libraries of dependencies for other ABIs either
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     androidResources {
@@ -94,6 +98,7 @@ android {
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
