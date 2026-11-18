@@ -45,6 +45,11 @@ GPL-3.0 terms (MPL-2.0 code may be combined with GPL code). Fractal does not inc
 download Lossless Scaling or its `Lossless.dll`: the user selects their own copy,
 whose shaders are only read.
 
+Performance HUD (`src/android/app/src/main/java/dev/dfd/fractal/emulation/hud/`): based on
+WinlatorHUD from Winlator-Ludashi by StevenMXZ (https://github.com/StevenMXZ/Winlator-Ludashi), under the
+**GNU General Public License 3.0** (see the SPDX headers of those files), so a build that includes them also follows
+the GPL-3.0 terms.
+
 Third-party libraries under `dependencies/` and those pulled through vcpkg
 keep their own licenses. See each component's license file.
 
