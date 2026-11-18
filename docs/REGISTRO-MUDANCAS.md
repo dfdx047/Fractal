@@ -90,6 +90,17 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 - **Achado com eles (Mi A3, MK8, driver do sistema):** o blob da Qualcomm não anuncia BC1-BC5, então cada textura BC vira
   RGBA8 (4-8x maior). Na largada são 833 MB de texturas, e o lmkd mata o jogo. `buffer_cache_mb=96` não muda nada.
 
+### Cache de buffers da GPU de 256 MB (6 GB de RAM ou mais)
+
+- **Commit:** `BC256HASH`. O cache de buffers passa de 164 para 256 MB quando o aparelho tem 5 GB ou mais de RAM
+  reportada (os de "6 GB" mostram ~5,5). Abaixo disso fica em 164. `buffer_cache_mb` em `perf/tuning.txt` continua valendo.
+- **Por quê:** Cars 3 no RP5 às vezes não achava espaço para um intervalo de streamout de 34 MB ("Failed to free enough
+  memory in GPU buffer") e parava de desenhar: 4 de 14 runs (system e T19).
+- **Testado:** RP5 com `2026-11-18_fractal-bufcache256.apk`: Cars 3 0 de 4 runs com o erro; regressão de 13 jogos no
+  system e no T19 (`v02b_rp5_*`) sem crash e com fps iguais aos da candidata.
+- **Risco:** +92 MB de memória da GPU nos aparelhos de 6 GB ou mais. Mi A3 (4 GB) e outros abaixo de 5 GB não mudam.
+- **Voltar atrás:** `buffer_cache_mb=164`, ou reverter o commit.
+
 ### Tentativas descartadas
 
 - **Espera ociosa do núcleo 1 sem travas**

@@ -3,6 +3,7 @@
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
+#include <unistd.h>
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
@@ -140,9 +141,16 @@ int Latte_ThreadEntry()
 	LatteTiming_Init();
 	LatteTexture_init();
 	LatteTC_Init();
-	// buffer_cache_mb: size of the GPU buffer cache heap (Cemu's 164 MB by default). Cars 3 on the Retroid Pocket 5 sometimes
-	// can't fit a 34 MB streamout range in it ("Failed to free enough memory in GPU buffer"), 3 of 10 runs on 18/11
-	LatteBufferCache_init((size_t)std::clamp<sint64>(PerfLog::Tunable("buffer_cache_mb", 164), 64, 1024) * 1024 * 1024);
+	// GPU buffer cache heap: Cemu's 164 MB, 256 MB on phones with 6 GB of RAM or more. Cars 3 on the Retroid Pocket 5 (8 GB)
+	// sometimes couldn't fit a 34 MB streamout range in 164 MB ("Failed to free enough memory in GPU buffer", 4 of 14 runs on
+	// 18/11, system driver and Turnip); with 256 MB 0 of 4. buffer_cache_mb in perf/tuning.txt overrides it
+	{
+		const uint64 ramBytes = (uint64)sysconf(_SC_PHYS_PAGES) * (uint64)sysconf(_SC_PAGE_SIZE);
+		const sint64 defaultMB = ramBytes >= 5120ull * 1024 * 1024 ? 256 : 164; // "6 GB" phones report ~5.5 GB, "4 GB" ~3.6
+		const sint64 bufferCacheMB = std::clamp<sint64>(PerfLog::Tunable("buffer_cache_mb", defaultMB), 64, 1024);
+		cemuLog_log(LogType::Force, "GPU buffer cache: {} MB ({} MB of RAM)", bufferCacheMB, ramBytes >> 20);
+		LatteBufferCache_init((size_t)bufferCacheMB * 1024 * 1024);
+	}
 	LatteQuery_Init();
 	LatteSHRC_Init();
 	LatteStreamout_InitCache();
