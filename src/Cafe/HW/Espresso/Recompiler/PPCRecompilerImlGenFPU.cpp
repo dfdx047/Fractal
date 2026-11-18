@@ -275,12 +275,8 @@ bool PPCRecompilerImlGen_FDIV(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 // 2 single precision ops, default 3; 0 restores the old two-step code for comparisons)
 static bool _UseFusedMultiplyAdd(bool singlePrecision)
 {
-#if defined(__aarch64__)
 	static const uint32 s_fma = (uint32)PerfLog::Tunable("jit_fma", 3);
 	return (s_fma & (singlePrecision ? 2 : 1)) != 0;
-#else
-	return false;
-#endif
 }
 
 bool PPCRecompilerImlGen_FMADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)

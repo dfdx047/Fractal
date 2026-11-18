@@ -149,18 +149,13 @@ void* g_vulkan_so = nullptr;
 #if BOOST_PLAT_ANDROID
 bool SupportsLoadingCustomDriver()
 {
-#ifdef __aarch64__
 	// Adreno (kgsl), Mali (kbase) or Samsung Xclipse (sgpu, a DRM render node). libadrenotools' custom driver path only
 	// swaps the Vulkan HAL the system loader opens, so it also works for Mali drivers that are HAL modules (PanVK,
 	// malisx2) and for the RADV ports for Xclipse.
 	std::error_code ec;
 	return fs::exists("/dev/kgsl-3d0", ec) || fs::exists("/dev/mali0", ec) || fs::exists("/dev/dri/renderD128", ec);
-#else
-	return false;
-#endif
 }
 
-#ifdef __aarch64__
 
 constexpr auto CUSTOM_DRIVER_LIB_NAME = "custom_vulkan.so";
 
@@ -312,7 +307,6 @@ void* load_custom_driver()
 	cemuLog_log(LogType::Force, "Loaded custom driver");
 	return vulkan_so;
 }
-#endif // __aarch64__
 
 #endif // BOOST_PLAT_ANDROID
 
@@ -320,7 +314,7 @@ void* dlopen_vulkan_loader()
 {
 #if BOOST_OS_LINUX || BOOST_OS_BSD
 	static void* vulkan_so = nullptr;
-#if BOOST_PLAT_ANDROID && defined(__aarch64__)
+#if BOOST_PLAT_ANDROID
 	s_custom_driver_in_use = false;
 	if (!s_skip_custom_driver)
 	{
@@ -362,7 +356,7 @@ bool InitializeGlobalVulkan()
 	if(!vkEnumerateInstanceVersion)
 	{
 		cemuLog_log(LogType::Force, "vkEnumerateInstanceVersion not available. Outdated graphics driver or Vulkan runtime?");
-#if BOOST_PLAT_ANDROID && defined(__aarch64__)
+#if BOOST_PLAT_ANDROID
 		if (s_custom_driver_in_use)
 		{
 			// the custom driver is not usable: retry with the system driver
@@ -382,7 +376,7 @@ bool InitializeGlobalVulkan()
 
 void CustomDriverFramePresented()
 {
-#if BOOST_PLAT_ANDROID && defined(__aarch64__)
+#if BOOST_PLAT_ANDROID
 	static bool s_done = false;
 	if (s_done)
 		return;
@@ -402,7 +396,7 @@ void CleanupGlobalVulkan()
 
 	g_vulkan_available = false;
 
-#if BOOST_PLAT_ANDROID && defined(__aarch64__)
+#if BOOST_PLAT_ANDROID
 	std::error_code ec;
 	fs::remove(ActiveSettings::GetInternalPath(CUSTOM_DRIVER_LIB_NAME), ec);
 #endif

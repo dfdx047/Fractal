@@ -2,7 +2,6 @@
 #include "config/ActiveSettings.h"
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
-#include "Common/cpu_features.h"
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
 #include <unordered_map>
@@ -10,10 +9,6 @@
 #include <dlfcn.h>
 #endif
 
-#if defined(ARCH_X86_64)
-#include <immintrin.h>
-#pragma intrinsic(__rdtsc)
-#endif
 
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
@@ -39,10 +34,6 @@ uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 
 uint64 PPCTimer_estimateRDTSCFrequency()
 {
-    #if defined(ARCH_X86_64)
-	if (!g_CPUFeatures.x86.invariant_tsc)
-		cemuLog_log(LogType::Force, "Invariant TSC not supported");
-    #endif
 
 	_mm_mfence();
 	uint64 tscStart = __rdtsc();

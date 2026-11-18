@@ -28,9 +28,7 @@
 #include <sys/system_properties.h>
 #endif
 
-#if defined(__aarch64__)
 void PPCRecompilerAArch64Gen_reportInterfaceFunctionsToPerfLog(); // BackendAArch64.cpp
-#endif
 
 std::string LatteCP_DescribeWait(); // LatteCommandProcessor.cpp
 
@@ -839,9 +837,7 @@ namespace PerfLog
 			if (Tunable("jit_code", 0) != 0)
 				s_jitCode.open(dir / "jitcode.bin", std::ios::trunc | std::ios::binary);
 		}
-#if defined(__aarch64__)
 		PPCRecompilerAArch64Gen_reportInterfaceFunctionsToPerfLog();
-#endif
 		s_sessionStart = Clock::now();
 		s_hasLastFrame = false;
 		s_stop = false;

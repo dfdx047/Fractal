@@ -78,15 +78,6 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 	// GuestWatch watch_jit: stores to its read-only pages are logged and performed there
 	if (sig == SIGSEGV && GuestWatch::HandleFault(info->si_addr, context))
 		return;
-#if defined(ARCH_X86_64) && BOOST_OS_LINUX
-	// Check for hardware breakpoints
-	if (info->si_signo == SIGTRAP && info->si_code == TRAP_HWBKPT)
-	{
-		uint64 dr6 = _ReadDR6();
-		g_gdbstub->HandleAccessException(dr6);
-		return;
-	}
-#endif
 
     if(!CrashLog_Create())
         return; // give up if crashlog was already created
@@ -105,11 +96,7 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 #if BOOST_PLAT_ANDROID
     {
         // the address of the faulting instruction, as library + offset when it's inside a library
-#if defined(__aarch64__)
         uint64 pc = ((ucontext_t*)context)->uc_mcontext.pc;
-#else
-        uint64 pc = ((ucontext_t*)context)->uc_mcontext.gregs[REG_RIP];
-#endif
         Dl_info dlInfo{};
         std::string location = "outside of any library (recompiled code?)";
         if (dladdr((void*)pc, &dlInfo) && dlInfo.dli_fname)
@@ -117,7 +104,6 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
         CrashLog_WriteLine(fmt::format("PC 0x{:016x} ({}), fault address 0x{:016x}, code {}", pc, location, (uint64)info->si_addr, info->si_code));
         if (const char* note = ExceptionHandler_GetThreadNote(); note && note[0])
             CrashLog_WriteLine(fmt::format("Crashed while: {}", note));
-#if defined(__aarch64__)
         // host registers, and for recompiled code the instructions around the PC (they are not in any file)
         const auto& mc = ((ucontext_t*)context)->uc_mcontext;
         for (int i = 0; i < 31; i += 4)
@@ -151,7 +137,6 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
                 CrashLog_WriteLine(line);
             }
         }
-#endif
     }
     CrashLog_WriteLine(to_string(boost::stacktrace::stacktrace()));
 #else
@@ -161,10 +146,6 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 	// get void*'s for all entries on the stack
 	size = backtrace(backtraceArray, 128);
     // replace the deepest entry with the actual crash address
-#if defined(ARCH_X86_64) && BOOST_OS_LINUX > 0
-    ucontext_t *uc = (ucontext_t *)context;
-    backtraceArray[0] = (void *)uc->uc_mcontext.gregs[REG_RIP];
-#endif
 
 #if BOOST_OS_LINUX
 	char** symbol_trace = backtrace_symbols(backtraceArray, size);
