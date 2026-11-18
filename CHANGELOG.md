@@ -114,6 +114,12 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   (`b6cf7c8b`).
 - **Hot Wheels: World's Best Driver:** freeze on a load (RP5 1 run in 3): two races in the game's render thread
   handshake; RP5 8 of 8 and POCO 5 of 5 runs without a freeze (`dfde2b64`).
+- **The Binding of Isaac: Rebirth (USA):** 13 to 43 thousand broken GPU command buffers a run (Cemu's state reload
+  workaround only knew the other release) and a crash on the POCO; now none, 58.7 fps on the RP5. The picture is still
+  black, see known issues (`226c1868`).
+- **Raster ops on the Adreno and Mali vendor drivers:** pipelines with a logic op other than COPY turned it on although
+  the driver lacks the feature (invalid in Vulkan, result up to the driver); they now draw as COPY there. Turnip and
+  PanVK are unchanged (`a0b305c5`).
 - **PanVK:** every game crashed on its first frame with faux123's PanVK (`VK_KHR_present_wait` without
   `vkWaitForPresentKHR`) (`45be70a4`).
 - **All games:** settings changed in the game menu were overwritten by the library (`e91a7121`); the app no longer closes
@@ -123,13 +129,24 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 
 ### Changed
 
+- **Android only:** the desktop code is gone (wxWidgets GUI, OpenGL and Metal renderers, x86-64 recompiler, Windows,
+  macOS and desktop Linux code, SDL/XInput/DirectInput input, desktop audio backends, Discord presence): 572 files,
+  about 103 thousand lines. The native library is 22.7 → 18.4 MB (third-party symbols no longer exported), only arm64
+  libraries are packaged, unused resources are dropped at build time and graphic packs download without Ktor
+  (`9aa94b36`, `ee6e63b1`, `d07f65ea`, `54b44032`, `4d4403c3`, `4b0f2868`, `56d83cd7`, `054ddf0f`, `bc69967a`,
+  `10bd5abd`, `5e0236a6`).
 - Dialog buttons look like the app's buttons and share the dialog width, or stack when a label doesn't fit
   (`af271be2`).
 - The classic overlay is renamed and points to the performance HUD (`378222ec`).
 
+### Known issues
+
+- **The Binding of Isaac: Rebirth (USA):** runs (sound, no crash) with a black picture on every phone tested.
+- **FIFA 13:** sometimes crashes in the game's audio thread on the RP5 (3 of about 10 runs), with every driver.
+
 ### Tools
 
-- 73 new benchmark scenes (`tools/perf/scenes`), GamePad touch and frame-held presses in input scripts, write watch for
+- 79 new benchmark scenes (`tools/perf/scenes`), GamePad touch and frame-held presses in input scripts, write watch for
   recompiled code (`watch_jit=1`), NEON bit-exact tests (`tools/neon_tests`), a separate GPU wait for linear surface
   copies in the perf log, and `FRACTAL_TEST_BUILD=1` for a "Fractal Teste" build that installs next to the official app
   (`6a78d980`, `e79e82bd`, `52ff15de`, `a4363e5f`, "Perf scenes" commits).

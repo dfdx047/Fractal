@@ -171,6 +171,13 @@ trabalho evita quebrar passes.
   bloco com consultas de tabela NEON para GPUs sem BCn ([`c4e6b0aa`](https://github.com/dfdx047/Fractal/commit/c4e6b0aa)). Números em *Ganhos medidos*.
 - `tools/neon_tests` compara cada caminho NEON com o código escalar bit a bit ([`852801bb`](https://github.com/dfdx047/Fractal/commit/852801bb)).
 
+### Só Android
+
+- O código de desktop saiu: interface wxWidgets, renderizadores OpenGL e Metal, recompilador x86-64, código de Windows,
+  macOS e Linux desktop, entrada e áudio de desktop, presença no Discord (572 arquivos, cerca de 103 mil linhas). A
+  biblioteca nativa caiu de 22,7 para 18,4 MB sem exportar símbolos de terceiros, só as bibliotecas arm64 vão no APK,
+  recursos sem uso saem no build e os graphic packs baixam com `HttpURLConnection` em vez do Ktor ([`9aa94b36`](https://github.com/dfdx047/Fractal/commit/9aa94b36), [`ee6e63b1`](https://github.com/dfdx047/Fractal/commit/ee6e63b1), [`d07f65ea`](https://github.com/dfdx047/Fractal/commit/d07f65ea), [`54b44032`](https://github.com/dfdx047/Fractal/commit/54b44032), [`4d4403c3`](https://github.com/dfdx047/Fractal/commit/4d4403c3), [`4b0f2868`](https://github.com/dfdx047/Fractal/commit/4b0f2868), [`bc69967a`](https://github.com/dfdx047/Fractal/commit/bc69967a), [`10bd5abd`](https://github.com/dfdx047/Fractal/commit/10bd5abd), [`5e0236a6`](https://github.com/dfdx047/Fractal/commit/5e0236a6)).
+
 ### Decompilador de shaders
 
 - Constantes de laço ([`2eef8ff5`](https://github.com/dfdx047/Fractal/commit/2eef8ff5)).
@@ -316,11 +323,13 @@ entre commits (driver, perfil de CPU), então compare cada linha só com ela mes
 
 ## Em andamento
 
-- **Só Android/ARM:** removendo todo o código de PC/desktop; o Fractal agora é um emulador só para Android/ARM.
-- **Limpeza de código e APK menor:** limpeza geral do código e redução do tamanho do APK.
-- **Profiling de CPU na Mali:** medindo onde a CPU gasta tempo nos jogos pesados no POCO X6 Pro para guiar mais trabalho
-  com NEON.
-- **Need for Speed: Most Wanted U no POCO:** um crash intermitente durante o jogo está sendo investigado.
+- **Profiling de CPU na Mali:** no POCO X6 Pro (Bayonetta 2, Breath of the Wild, Xenoblade X, AC III) o laço ocioso do
+  núcleo PowerPC principal gasta cerca de metade do tempo lendo o relógio e pegando as travas do timer e do áudio. Deixar
+  essa espera sem travas não deu fps no RP5, no POCO nem no Mi A3, então ficou de fora; o próximo é a thread de render.
+- **Need for Speed: Most Wanted U no POCO:** um crash durante o jogo com uma build anterior, não visto de novo em 7 runs.
+- **The Binding of Isaac: Rebirth (USA):** roda (som, sem crash, 58,7 fps no RP5) com a imagem preta em todos os
+  celulares; a tela do GamePad e a correção do logic op não mudam isso.
+- **FIFA 13 no RP5:** crash na thread de áudio do jogo (lê o endereço 0) em cerca de 3 de 10 runs, com qualquer driver.
 - **Splinter Cell: Blacklist:** nas missões só o céu e o chão são desenhados (a wiki de compatibilidade do Cemu cita o
   mesmo problema). Já descartados: occlusion queries, a pirâmide hi-Z e as consultas de mapeamento de memória.
 - **Assassin's Creed III no POCO:** terreno e rochas próximos saem azul-escuro liso; em multi-core o jogo não envia o draw
