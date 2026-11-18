@@ -69,7 +69,7 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   largest `cpu_capacity`); Android put them on the Cortex-A55 of the Snapdragon 865 often enough to cost a lot. Amazing
   Spider-Man 2 on the Retroid Pocket 5: 34.9 → 40.3 fps with CPU use 262 → 193 %. No change on the POCO X6 Pro and the
   Mi A3; nothing is pinned on CPUs without a little cluster (Snapdragon 8 Elite). `big_cores=0` in `perf/tuning.txt`
-  turns it off (`03b83590`).
+  turns it off (`683c6772`).
 - **Recompiler:** `addo`/`subfo`/`addco`/`subfco`, `mfxer`/`mtxer`, `fcmpo`, `bdnzf`-style branches, conditional far
   branches, `subfme`, `divwo`/`divwuo` and `bcl 20` no longer send functions to the interpreter, and a huge contiguous
   function is translated in windows instead of whole for every new entry. Teslagrad on the Mi A3: host code 118 → 39 MB,

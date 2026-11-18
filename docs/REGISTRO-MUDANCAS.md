@@ -70,7 +70,7 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ### Núcleos grandes por padrão
 
-- **Commit:** `03b83590`. As threads dos núcleos emulados e a da GPU (LatteThread) evitam o cluster pequeno: núcleos com
+- **Commit:** `683c6772`. As threads dos núcleos emulados e a da GPU (LatteThread) evitam o cluster pequeno: núcleos com
   menos de 75% do maior `cpu_capacity` (regra do ARMSX3). Sem cluster pequeno (8 Elite) nada é fixado. `big_cores=0` em
   `perf/tuning.txt` desliga. O recompilador, o áudio e o resto continuam livres.
 - **Testado (build `2026-11-18_fractal-bigcores.apk`, A/B no mesmo run):**
