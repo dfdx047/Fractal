@@ -35,3 +35,11 @@ target_link_libraries(CemuAndroid PRIVATE
         ZArchive::zarchive
         stb
 )
+
+# Third-party archives stay out of the dynamic symbol table, so only the code the emulator calls is kept. The
+# emulator's own symbols remain exported because the crash log's stack trace names functions through them
+# (dladdr); -Bsymbolic-functions still binds calls between them directly instead of through the PLT.
+target_link_options(CemuAndroid PRIVATE
+        "-Wl,--exclude-libs,libadrenotools.a:liblinkernsbypass.a:libboost_container.a:libboost_context.a:libboost_iostreams.a:libboost_nowide.a:libboost_program_options.a:libboost_random.a:libboost_system.a:libbz2.a:liblzma.a:libcrypto.a:libssl.a:libcurl.a:libcubeb.a:libfmt.a:libglm.a:libglslang.a:libih264d.a:libimguiImpl.a:libpugixml.a:libusb-1.0.a:libxbyak_aarch64.a:libz.a:libzarchive.a:libzstd.a:libstb.a"
+        "-Wl,-Bsymbolic-functions"
+)
