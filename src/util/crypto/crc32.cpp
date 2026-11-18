@@ -1,4 +1,8 @@
 #include "crc32.h"
+#include "Common/cpu_features.h"
+#if defined(__aarch64__)
+#include <arm_acle.h>
+#endif
 
 constexpr uint32 Crc32Lookup[8][256] =
 {
@@ -327,8 +331,44 @@ uint32 crc32_calc_slice_by_8(uint32 previousCrc32, const void* data, size_t leng
 	return ~crc; // same as crc ^ 0xFFFFFFFF
 }
 
+#if defined(__aarch64__)
+// the ARMv8 CRC32B/H/W/X instructions use the same reflected polynomial (0xEDB88320) as the tables above, so the
+// results are identical (CRC32C would be the CRC32CB... variants). Optional in ARMv8.0, hence the runtime check
+ATTRIBUTE_ARM_CRC uint32 crc32_calc_armv8(uint32 previousCrc32, const void* data, size_t length)
+{
+	uint32 crc = ~previousCrc32;
+	const uint8* p = (const uint8*)data;
+	while (length >= 32)
+	{
+		uint64 v[4];
+		memcpy(v, p, sizeof(v));
+		crc = __crc32d(crc, v[0]);
+		crc = __crc32d(crc, v[1]);
+		crc = __crc32d(crc, v[2]);
+		crc = __crc32d(crc, v[3]);
+		p += 32;
+		length -= 32;
+	}
+	while (length >= 8)
+	{
+		uint64 v;
+		memcpy(&v, p, sizeof(v));
+		crc = __crc32d(crc, v);
+		p += 8;
+		length -= 8;
+	}
+	while (length--)
+		crc = __crc32b(crc, *p++);
+	return ~crc;
+}
+#endif
+
 uint32 crc32_calc(uint32 c, const void* data, size_t length)
 {
+#if defined(__aarch64__)
+	if (g_CPUFeatures.arm64.crc32)
+		return crc32_calc_armv8(c, data, length);
+#endif
 	if (length >= 16)
 	{
 		return crc32_calc_slice_by_8(c, data, length);

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <algorithm>
 #include <string>
+#include <vector>
 #include <bit>
 
 #if defined(__x86_64__) || defined(_M_X64)
