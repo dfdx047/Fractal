@@ -84,7 +84,7 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ### Ajustes de diagnóstico de memória (desligados por padrão)
 
-- **Commit:** `DIAGMEM`. `buffer_cache_mb` (cache de buffers da GPU, padrão 164), `tex_chunk_mb` (blocos do heap de
+- **Commit:** `f4d8191f`. `buffer_cache_mb` (cache de buffers da GPU, padrão 164), `tex_chunk_mb` (blocos do heap de
   texturas, padrão 128) e `log_tex_mem=1` (registra cada bloco do heap de texturas, cada imagem de 8 MB ou mais e o total a
   cada 64 MB). Sem `perf/tuning.txt` nada muda; o único custo fixo é um campo de 8 bytes por textura.
 - **Achado com eles (Mi A3, MK8, driver do sistema):** o blob da Qualcomm não anuncia BC1-BC5, então cada textura BC vira
