@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include <imgui.h>
+#include "Cafe/HW/Latte/Core/LattePerfLog.h"
 
 /* VKRSynchronizedMemoryBuffer */
 
@@ -250,6 +251,16 @@ VkTextureChunkedHeap::~VkTextureChunkedHeap()
 	}
 }
 
+static std::atomic<uint64> s_texChunkBytes{0};
+
+void VkTextureChunkedHeap::LogChunk(uint32 chunkIndex, uint32 size, uint32 memType)
+{
+	static const bool s_log = PerfLog::Tunable("log_tex_mem", 0) != 0;
+	const uint64 total = s_texChunkBytes.fetch_add(size) + size;
+	if (s_log)
+		cemuLog_log(LogType::Force, "TexMem: heap {:08x} chunk {} of {} MB, memory type {} (all texture chunks {} MB)", m_typeFilter, chunkIndex, size >> 20, memType, total >> 20);
+}
+
 uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize)
 {
 	cemu_assert_debug(m_list_chunkInfo.size() == chunkIndex);
@@ -258,7 +269,10 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 	// pad minimumAllocationSize to 32KB alignment
 	minimumAllocationSize = (minimumAllocationSize + (32 * 1024 - 1)) & ~(32 * 1024 - 1);
 
-	uint32 allocationSize = 1024 * 1024 * 128;
+	// tex_chunk_mb: size of the texture heap chunks after the first (Cemu: 128 MB); every memory type filter has its own
+	// heap, so on a phone with 3-4 GB of RAM a mostly empty 128 MB chunk is a big part of what the game can use
+	static const uint32 s_chunkMB = (uint32)std::clamp<sint64>(PerfLog::Tunable("tex_chunk_mb", 128), 16, 512);
+	uint32 allocationSize = 1024 * 1024 * s_chunkMB;
 	if (chunkIndex == 0)
 	{
 		// make the first allocation smaller, this decreases wasted memory when there are textures that require specific flags (and thus separate heaps)
@@ -290,6 +304,7 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 			if (r != VK_SUCCESS)
 				continue;
 			m_list_chunkInfo[chunkIndex].mem = imageMemory;
+			LogChunk(chunkIndex, allocationSize, memType);
 			return allocationSize;
 		}
 		// attempt to allocate from host-local memory
@@ -305,6 +320,7 @@ uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumA
 			if (r != VK_SUCCESS)
 				continue;
 			m_list_chunkInfo[chunkIndex].mem = imageMemory;
+			LogChunk(chunkIndex, allocationSize, memType);
 			return allocationSize;
 		}
 		// retry with smaller size if possible

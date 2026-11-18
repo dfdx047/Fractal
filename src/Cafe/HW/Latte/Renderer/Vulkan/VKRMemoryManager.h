@@ -87,6 +87,7 @@ public:
 
   private:
 	uint32 allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize) override;
+	void LogChunk(uint32 chunkIndex, uint32 size, uint32 memType);
 
 	uint32 m_typeFilter{ 0xFFFFFFFF };
 	class VKRMemoryManager* m_vkrMemoryManager;

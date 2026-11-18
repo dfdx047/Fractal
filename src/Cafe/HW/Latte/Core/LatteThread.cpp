@@ -140,7 +140,9 @@ int Latte_ThreadEntry()
 	LatteTiming_Init();
 	LatteTexture_init();
 	LatteTC_Init();
-	LatteBufferCache_init(164 * 1024 * 1024);
+	// buffer_cache_mb: size of the GPU buffer cache heap (Cemu's 164 MB by default). Cars 3 on the Retroid Pocket 5 sometimes
+	// can't fit a 34 MB streamout range in it ("Failed to free enough memory in GPU buffer"), 3 of 10 runs on 18/11
+	LatteBufferCache_init((size_t)std::clamp<sint64>(PerfLog::Tunable("buffer_cache_mb", 164), 64, 1024) * 1024 * 1024);
 	LatteQuery_Init();
 	LatteSHRC_Init();
 	LatteStreamout_InitCache();

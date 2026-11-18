@@ -1,10 +1,16 @@
 #include <unordered_set>
 #include <mutex>
+#include <atomic>
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+
+// log_tex_mem=1 (perf/tuning.txt): host memory of the texture images, logged at every 64 MB step of the total and for
+// every image of 8 MB or more; for the low-RAM phones (MK8 on the Mi A3 gains ~700 MB of graphics memory at race load)
+static std::atomic<uint64> s_texHostBytes{0};
+static std::atomic<uint64> s_texHostCount{0};
 
 LatteTextureVk::LatteTextureVk(class VulkanRenderer* vkRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -161,6 +167,11 @@ LatteTextureVk::~LatteTextureVk()
 
 	m_vkr->surfaceCopy_notifyTextureRelease(this);
 
+	if (m_hostBytes)
+	{
+		s_texHostBytes.fetch_sub(m_hostBytes);
+		s_texHostCount.fetch_sub(1);
+	}
 	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(vkObjTex);
 	vkObjTex = nullptr;
 }
@@ -178,6 +189,22 @@ void LatteTextureVk::AllocateOnHost()
 {
 	auto allocationInfo = VulkanRenderer::GetInstance()->GetMemoryManager()->imageMemoryAllocate(GetImageObj()->m_image);
 	vkObjTex->m_allocation = allocationInfo;
+	static const bool s_logTexMem = PerfLog::Tunable("log_tex_mem", 0) != 0;
+	if (s_logTexMem)
+	{
+		VkMemoryRequirements req{};
+		vkGetImageMemoryRequirements(m_vkr->GetLogicalDevice(), vkObjTex->m_image, &req);
+		m_hostBytes = req.size;
+		const uint64 before = s_texHostBytes.fetch_add(req.size);
+		const uint64 count = s_texHostCount.fetch_add(1) + 1;
+		const uint64 step = 64ull * 1024 * 1024;
+		if (req.size >= 8ull * 1024 * 1024)
+			cemuLog_log(LogType::Force, "TexMem: {}x{}x{} mips {} GX2 {:04x} vk {} tm {} = {} KB (total {} MB, {} textures)", width, height, depth, mipLevels,
+				(uint32)format, (uint32)vkObjTex->m_format, (uint32)tileMode, req.size / 1024, (before + req.size) >> 20, count);
+		else if ((before / step) != ((before + req.size) / step))
+			cemuLog_log(LogType::Force, "TexMem: total {} MB, {} textures (last {}x{}x{} GX2 {:04x} vk {} {} KB)", (before + req.size) >> 20, count,
+				width, height, depth, (uint32)format, (uint32)vkObjTex->m_format, req.size / 1024);
+	}
 }
 
 void LatteTextureVk::MarkUsedInCurrentCommandBuffer() const

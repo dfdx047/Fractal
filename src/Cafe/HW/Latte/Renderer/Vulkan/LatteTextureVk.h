@@ -110,5 +110,6 @@ private:
 	uint32 m_layoutsMips;
 	uint32 m_layoutsDepth;
 private:
+	uint64 m_hostBytes{}; // image memory size, only with log_tex_mem
 	mutable uint64 m_lastUseCmdBufferId{}; // id + 1 of the last command buffer that used the image, 0 if none
 };
