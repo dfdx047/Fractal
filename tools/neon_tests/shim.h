@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <array>
 #include <bit>
 
 #if defined(__x86_64__) || defined(_M_X64)

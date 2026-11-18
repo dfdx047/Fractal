@@ -40,20 +40,7 @@ uint8* LatteTextureLoader_GetInput(LatteTextureLoaderCtx* textureLoader, sint32 
 
 #include "Cafe/HW/Latte/LatteAddrLib/AddrLibFastDecode.h"
 
-void decodeBC1Block(uint8* inputData, float* output4x4RGBA);
-void decodeBC2Block_UNORM(uint8* inputData, float* imageRGBA);
-void decodeBC3Block_UNORM(uint8* inputData, float* imageRGBA);
-void decodeBC4Block_UNORM(uint8* blockStorage, float* rOutput);
-void decodeBC4Block_SNORM(uint8* blockStorage, float* rOutput);
-// a decoded BC4/BC5 value as the byte of an R8/R8G8 texture: UNORM 0..255, SNORM two's complement -127..127 (GPUs without BCn)
-inline uint8 bcDecodedToByte(float v, bool snorm)
-{
-	if (snorm)
-		return (uint8)(sint8)std::lround(std::clamp(v, -1.0f, 1.0f) * 127.0f);
-	return (uint8)std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f);
-}
-void decodeBC5Block_UNORM(uint8* blockStorage, float* rgOutput);
-void decodeBC5Block_SNORM(uint8* blockStorage, float* rgOutput);
+#include "Cafe/HW/Latte/Core/LatteTextureLoaderBC.h"
 using decodingFn = void (uint8 *, float *);
 
 inline void BC1_GetPixel(uint8* inputData, sint32 x, sint32 y, uint8 rgba[4])
@@ -1710,6 +1697,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
+		const sint32 outputPitch = textureLoader->width * 4;
 		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
 		{
 			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
@@ -1717,25 +1705,7 @@ public:
 				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
 				sint32 blockSizeX = (std::min)(4, textureLoader->width - x);
 				sint32 blockSizeY = (std::min)(4, textureLoader->height - y);
-				// decode 4x4 pixels at once
-				float rgbaBlock[4 * 4 * 4];
-				decodeBC1Block(blockData, rgbaBlock);
-				for (sint32 py = 0; py < blockSizeY; py++)
-				{
-					sint32 yc = y + py;
-					for (sint32 px = 0; px < blockSizeX; px++)
-					{
-						sint32 pixelOffset = (x + px + yc * textureLoader->width) * 4; // write to target buffer
-						float red = rgbaBlock[(px + py * 4) * 4 + 0];
-						float green = rgbaBlock[(px + py * 4) * 4 + 1];
-						float blue = rgbaBlock[(px + py * 4) * 4 + 2];
-						float alpha = rgbaBlock[(px + py * 4) * 4 + 3];
-						*(outputData + pixelOffset + 0) = red * 255;
-						*(outputData + pixelOffset + 1) = green * 255;
-						*(outputData + pixelOffset + 2) = blue * 255;
-						*(outputData + pixelOffset + 3) = alpha * 255;
-					}
-				}
+				decodeBC1Block_ToRGBA8(blockData, outputData + (x + y * textureLoader->width) * 4, outputPitch, blockSizeX, blockSizeY);
 			}
 		}
 	}
@@ -1756,6 +1726,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
+		const sint32 outputPitch = textureLoader->width * 4;
 		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
 		{
 			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
@@ -1763,25 +1734,7 @@ public:
 				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
 				sint32 blockSizeX = (std::min)(4, textureLoader->width - x);
 				sint32 blockSizeY = (std::min)(4, textureLoader->height - y);
-				// decode 4x4 pixels at once
-				float rgbaBlock[4 * 4 * 4];
-				decodeBC2Block_UNORM(blockData, rgbaBlock);
-				for (sint32 py = 0; py < blockSizeY; py++)
-				{
-					sint32 yc = y + py;
-					for (sint32 px = 0; px < blockSizeX; px++)
-					{
-						sint32 pixelOffset = (x + px + yc * textureLoader->width) * 4; // write to target buffer
-						float red = rgbaBlock[(px + py * 4) * 4 + 0];
-						float green = rgbaBlock[(px + py * 4) * 4 + 1];
-						float blue = rgbaBlock[(px + py * 4) * 4 + 2];
-						float alpha = rgbaBlock[(px + py * 4) * 4 + 3];
-						*(outputData + pixelOffset + 0) = red * 255;
-						*(outputData + pixelOffset + 1) = green * 255;
-						*(outputData + pixelOffset + 2) = blue * 255;
-						*(outputData + pixelOffset + 3) = alpha * 255;
-					}
-				}
+				decodeBC2Block_ToRGBA8(blockData, outputData + (x + y * textureLoader->width) * 4, outputPitch, blockSizeX, blockSizeY);
 			}
 		}
 	}
@@ -2012,6 +1965,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
+		const sint32 outputPitch = textureLoader->width * 4;
 		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
 		{
 			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
@@ -2019,25 +1973,7 @@ public:
 				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
 				sint32 blockSizeX = (std::min)(4, textureLoader->width - x);
 				sint32 blockSizeY = (std::min)(4, textureLoader->height - y);
-				// decode 4x4 pixels at once
-				float rgbaBlock[4 * 4 * 4];
-				decodeBC3Block_UNORM(blockData, rgbaBlock);
-				for (sint32 py = 0; py < blockSizeY; py++)
-				{
-					sint32 yc = y + py;
-					for (sint32 px = 0; px < blockSizeX; px++)
-					{
-						sint32 pixelOffset = (x + px + yc * textureLoader->width) * 4; // write to target buffer
-						float red = rgbaBlock[(px + py * 4) * 4 + 0];
-						float green = rgbaBlock[(px + py * 4) * 4 + 1];
-						float blue = rgbaBlock[(px + py * 4) * 4 + 2];
-						float alpha = rgbaBlock[(px + py * 4) * 4 + 3];
-						*(outputData + pixelOffset + 0) = (uint8)(red * 255);
-						*(outputData + pixelOffset + 1) = (uint8)(green * 255);
-						*(outputData + pixelOffset + 2) = (uint8)(blue * 255);
-						*(outputData + pixelOffset + 3) = (uint8)(alpha * 255);
-					}
-				}
+				decodeBC3Block_ToRGBA8(blockData, outputData + (x + y * textureLoader->width) * 4, outputPitch, blockSizeX, blockSizeY);
 			}
 		}
 	}
@@ -2159,6 +2095,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
+		const sint32 outputPitch = textureLoader->width * 1;
 		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
 		{
 			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
@@ -2166,20 +2103,7 @@ public:
 				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
 				sint32 blockSizeX = (std::min)(4, textureLoader->width - x);
 				sint32 blockSizeY = (std::min)(4, textureLoader->height - y);
-				// decode 4x4 pixels at once
-				float rBlock[4 * 4 * 1];
-				fn(blockData, rBlock);
-
-				for (sint32 py = 0; py < blockSizeY; py++)
-				{
-					sint32 yc = y + py;
-					for (sint32 px = 0; px < blockSizeX; px++)
-					{
-						sint32 pixelOffset = (x + px + yc * textureLoader->width); // write to target buffer
-						float red = rBlock[(px + py * 4) * 1 + 0];
-						*(outputData + pixelOffset + 0) = bcDecodedToByte(red, fn == decodeBC4Block_SNORM);
-					}
-				}
+				decodeBC4Block_ToR8(blockData, outputData + (x + y * textureLoader->width), outputPitch, blockSizeX, blockSizeY, fn == decodeBC4Block_SNORM);
 			}
 		}
 	}
@@ -2243,6 +2167,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
+		const sint32 outputPitch = textureLoader->width * 2;
 		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
 		{
 			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
@@ -2250,22 +2175,7 @@ public:
 				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
 				sint32 blockSizeX = (std::min)(4, textureLoader->width - x);
 				sint32 blockSizeY = (std::min)(4, textureLoader->height - y);
-				// decode 4x4 pixels at once
-				float rgBlock[4 * 4 * 2];
-				fn(blockData, rgBlock);
-
-				for (sint32 py = 0; py < blockSizeY; py++)
-				{
-					sint32 yc = y + py;
-					for (sint32 px = 0; px < blockSizeX; px++)
-					{
-						sint32 pixelOffset = (x + px + yc * textureLoader->width) * 2; // write to target buffer
-						float red = rgBlock[(px + py * 4) * 2 + 0];
-						float green = rgBlock[(px + py * 4) * 2 + 1];
-						*(outputData + pixelOffset + 0) = bcDecodedToByte(red, fn == decodeBC5Block_SNORM);
-						*(outputData + pixelOffset + 1) = bcDecodedToByte(green, fn == decodeBC5Block_SNORM);
-					}
-				}
+				decodeBC5Block_ToRG8(blockData, outputData + (x + y * textureLoader->width) * 2, outputPitch, blockSizeX, blockSizeY, fn == decodeBC5Block_SNORM);
 			}
 		}
 	}
