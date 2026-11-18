@@ -42,35 +42,6 @@ uint32 LatteShaderRecompiler_getAttributeSize(Latte::E_HWFMT format)
 	return 0;
 }
 
-uint32 LatteShaderRecompiler_getAttributeAlignment(Latte::E_HWFMT format)
-{
-	if (format == Latte::E_HWFMT::HWFMT_32_32_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT)
-		return 4;
-	else if (format == Latte::E_HWFMT::HWFMT_32_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT)
-		return 4;
-	else if (format == Latte::E_HWFMT::HWFMT_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_FLOAT)
-		return 4;
-	else if (format == Latte::E_HWFMT::HWFMT_32 || format == Latte::E_HWFMT::HWFMT_32_FLOAT)
-		return 4;
-	else if (format == Latte::E_HWFMT::HWFMT_16_16_16_16 || format == Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT)
-		return 2;
-	else if (format == Latte::E_HWFMT::HWFMT_16_16 || format == Latte::E_HWFMT::HWFMT_16_16_FLOAT)
-		return 2;
-	else if (format == Latte::E_HWFMT::HWFMT_16 || format == Latte::E_HWFMT::HWFMT_16_FLOAT)
-		return 2;
-	else if (format == Latte::E_HWFMT::HWFMT_8_8_8_8)
-		return 1;
-	else if (format == Latte::E_HWFMT::HWFMT_8_8)
-		return 1;
-	else if (format == Latte::E_HWFMT::HWFMT_8)
-		return 1;
-	else if (format == Latte::E_HWFMT::HWFMT_2_10_10_10)
-		return 4;
-	else
-		cemu_assert_unimplemented();
-	return 4;
-}
-
 void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 {
 	uint64 key = 0;

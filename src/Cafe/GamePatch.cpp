@@ -122,32 +122,6 @@ void hleExport_pmcs_yellowPaintStarCrashWorkaround(PPCInterpreter_t* hCPU)
 
 uint8 hleSignature_wwhd_0173B2A0[] = {0x8D,0x43,0x00,0x01,0x7C,0xC9,0x52,0x78,0x55,0x2C,0x15,0xBA,0x7C,0x0C,0x28,0x2E,0x54,0xC8,0xC2,0x3E,0x7D,0x06,0x02,0x78,0x42,0x00,0xFF,0xE8,0x7C,0xC3,0x30,0xF8};
 
-void hle_scan(uint8* data, sint32 dataLength, char* hleFunctionName)
-{
-	sint32 functionIndex = osLib_getFunctionIndex("hle", hleFunctionName);
-	if( functionIndex < 0 )
-	{
-		debug_printf("HLE function unknown\n");
-		return;
-	}
-
-	uint8* scanStart = memory_getPointerFromVirtualOffset(0x01000000);
-	uint8* scanEnd = scanStart + 0x0F000000 - dataLength;
-	uint8* scanCurrent = scanStart;
-	while( scanCurrent < scanEnd )
-	{
-		if( memcmp(scanCurrent, data, dataLength) == 0 )
-		{
-			uint32 offset = (uint32)(scanCurrent - scanStart) + 0x01000000;
-			debug_printf("HLE signature for '%s' found at 0x%08x\n", hleFunctionName, offset);
-			uint32 opcode = (1<<26)|(functionIndex+0x1000); // opcode for HLE: 0x1000 + FunctionIndex
-			memory_write<uint32>(offset, opcode);
-			break;
-		}
-		scanCurrent += 4;
-	}
-}
-
 MPTR hle_locate(uint8* data, sint32 dataLength)
 {
 	uint8* scanStart = memory_getPointerFromVirtualOffset(0x01000000);

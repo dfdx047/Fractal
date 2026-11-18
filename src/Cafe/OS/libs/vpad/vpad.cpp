@@ -340,12 +340,6 @@ namespace vpad
 		return result;
 	}
 
-	sint32 VPADCalcTPCalibrationParam(VPADTPCalibrationParam* p, uint16 raw_x1, uint16 raw_y1, uint16 x1, uint16 y1, uint16 raw_x2, uint16 raw_y2, uint16 x2, uint16 y2)
-	{
-		cemu_assert_unimplemented();
-		return 1;
-	}
-
 	void VPADGetTPCalibrationParam(sint32 channel, VPADTPCalibrationParam* param)
 	{
 		cemuLog_log(LogType::InputAPI, "VPADGetTPCalibrationParam({}, 0x{:x})", channel, MEMPTR(param).GetMPTR());

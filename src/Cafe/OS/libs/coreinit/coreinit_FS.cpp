@@ -1019,14 +1019,6 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSFlushFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errHandling)
-	{
-		StackAllocator<FSAsyncParams, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
-		sint32 fsAsyncRet = FSFlushFileAsync(fsClient, fsCmdBlock, fileHandle, errHandling, &asyncParams);
-		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
-	}
-
 	FSA_RESULT __FSPrepareCmd_ReadFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, void* dest, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag)
 	{
 		if (fsaShimBuffer == NULL || dest == NULL)
@@ -1408,14 +1400,6 @@ namespace coreinit
 
 		__FSQueueCmd(&fsClientBody->fsCmdQueue, fsCmdBlockBody, RPLLoader_MakePPCCallable(export___FSQueueDefaultFinishFunc));
 		return (FSStatus)FS_RESULT::SUCCESS;
-	}
-
-	sint32 FSRewindDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask)
-	{
-		StackAllocator<FSAsyncParams, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
-		sint32 fsAsyncRet = FSRewindDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, &asyncParams);
-		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
 	FSA_RESULT __FSPrepareCmd_AppendFile(iosu::fsa::FSAShimBuffer* fsaShimBuffer, IOSDevHandle fsaHandle, uint32 size, uint32 count, uint32 fileHandle, uint32 uknParam)

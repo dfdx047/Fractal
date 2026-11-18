@@ -11,43 +11,11 @@
 
 std::unique_ptr<GameProfile> g_current_game_profile = std::make_unique<GameProfile>();
 
-struct gameProfileBooleanOption_t
-{
-	bool isPresent = false;
-	bool value;
-};
-
 /*
 * Attempts to load a boolean option
 * If the option exists, true is returned.
-* The boolean is stored in *optionValue
+* The boolean is stored in option
 */
-bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
-{
-	auto option_value = iniParser->FindOption(optionName);
-	option->isPresent = false;
-	option->value = false;
-	if (!option_value)
-		return false;
-	// parse option
-	if (boost::iequals(*option_value, "false") || boost::iequals(*option_value, "0"))
-	{
-		option->isPresent = true;
-		option->value = false;
-		return true;
-	}
-	else if (boost::iequals(*option_value, "true") || boost::iequals(*option_value, "1"))
-	{
-		option->isPresent = true;
-		option->value = true;
-		return true;
-	}
-	else
-		cemuLog_log(LogType::Force, "Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
-	return false;
-}
-
-
 bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName, bool& option)
 {
 	auto option_value = iniParser.FindOption(optionName);

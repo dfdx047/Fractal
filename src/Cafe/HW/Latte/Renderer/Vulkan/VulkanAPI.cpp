@@ -313,20 +313,6 @@ void CustomDriverFramePresented()
 		remove_custom_driver_marker(CUSTOM_DRIVER_PENDING_MARKER);
 }
 
-void CleanupGlobalVulkan()
-{
-	if (g_vulkan_so)
-	{
-		dlclose(g_vulkan_so);
-		g_vulkan_so = nullptr;
-	}
-
-	g_vulkan_available = false;
-
-	std::error_code ec;
-	fs::remove(ActiveSettings::GetInternalPath(CUSTOM_DRIVER_LIB_NAME), ec);
-}
-
 bool InitializeInstanceVulkan(VkInstance instance)
 {
 	void* vulkan_so = g_vulkan_so;

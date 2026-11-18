@@ -598,11 +598,6 @@ namespace padscore
 		osLib_returnFromFunction(hCPU, max_controllers);
 	}
 
-	bool WPADIsUsedCallbackByKPAD()
-	{
-		return g_wpad_callback_by_kpad == TRUE;
-	}
-
 	void* WPADSetSamplingCallback(sint32 channel, void* callback)
 	{
 		cemu_assert_debug(0 <= channel && channel < kKPADMaxControllers);

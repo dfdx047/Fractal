@@ -1184,31 +1184,6 @@ namespace snd_user
 		*freeFuncOut = s_fxFree;
 	}
 
-	void* AXFXInternalAlloc(uint32 size, bool clearToZero)
-	{
-		if (s_fxAlloc)
-		{
-			MEMPTR<void> mem{ PPCCoreCallback(s_fxAlloc, size) };
-			if (clearToZero)
-				memset(mem.GetPtr(), 0, size);
-			return mem.GetPtr();
-		}
-		void* mem = coreinit::_weak_MEMAllocFromDefaultHeapEx(size, 4);
-		if (clearToZero)
-			memset(mem, 0, size);
-		return mem;
-	}
-
-	void AXFXInternalFree(void* mem)
-	{
-		if (s_fxFree)
-		{
-			PPCCoreCallback(s_fxFree, mem);
-			return;
-		}
-		coreinit::_weak_MEMFreeToDefaultHeap(mem);
-	}
-
 	/* AUX callback */
 
 	struct AUXCBSAMPLEDATA

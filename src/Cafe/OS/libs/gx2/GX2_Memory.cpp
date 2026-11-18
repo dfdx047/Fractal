@@ -9,12 +9,6 @@
 MPTR gx2Mem_defaultAlloc = MPTR_NULL;
 MPTR gx2Mem_defaultFree = MPTR_NULL;
 
-void gx2Memory_GX2SetDefaultAllocator(MPTR defaultAllocFunc, MPTR defaulFreeFunc)
-{
-	gx2Mem_defaultAlloc = defaultAllocFunc;
-	gx2Mem_defaultFree = defaulFreeFunc;
-}
-
 void _GX2DefaultAlloc_Alloc(PPCInterpreter_t* hCPU)
 {
 	// parameters:

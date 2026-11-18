@@ -197,12 +197,6 @@ struct wu_sockaddr
 	uint8  sa_data[14]; // IPv4
 };
 
-void sockaddr_guest2host(wu_sockaddr* input, sockaddr* output)
-{
-	output->sa_family = _swapEndianU16(input->sa_family);
-	memcpy(output->sa_data, input->sa_data, 14);
-}
-
 void sockaddr_host2guest(sockaddr* input, wu_sockaddr* output)
 {
 	output->sa_family = _swapEndianU16(input->sa_family);

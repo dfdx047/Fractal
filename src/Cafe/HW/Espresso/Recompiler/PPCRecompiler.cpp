@@ -631,31 +631,6 @@ void PPCRecompiler_allocateRange(uint32 startAddress, uint32 size)
 	}
 }
 
-bool PPCRecompiler_findFuncRanges(uint32 addr, ppcRecompilerFuncRange* rangesOut, size_t* countInOut)
-{
-	s_ppcRecompilerState.recompilerSpinlock.lock();
-	size_t countIn = *countInOut;
-	size_t countOut = 0;
-
-	s_ppcRecompilerState.functionStorage.findRanges(addr, addr + 4, [rangesOut, countIn, &countOut](uint32 start, uint32 end, PPCRecFunction_t* func)
-	{
-		if (countOut < countIn)
-		{
-			rangesOut[countOut].ppcStart = start;
-			rangesOut[countOut].ppcSize = (end-start);
-			rangesOut[countOut].x86Start = func->x86Code;
-			rangesOut[countOut].x86Size = func->x86Size;
-		}
-		countOut++;
-	}
-	);
-	s_ppcRecompilerState.recompilerSpinlock.unlock();
-	*countInOut = countOut;
-	if (countOut > countIn)
-		return false;
-	return true;
-}
-
 extern "C" DLLEXPORT uintptr_t* PPCRecompiler_getJumpTableBase()
 {
 	if (ppcRecompilerInstanceData == nullptr)

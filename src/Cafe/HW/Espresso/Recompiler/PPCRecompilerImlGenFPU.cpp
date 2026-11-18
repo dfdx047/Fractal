@@ -34,12 +34,6 @@ IMLReg _GetFPRTemp(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0 + index, IMLRegFormat::F64);
 }
 
-IMLReg _GetFPRReg(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex, bool selectPS1)
-{
-	cemu_assert_debug(regIndex < 32);
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + (selectPS1 ? 1 : 0), IMLRegFormat::F64);
-}
-
 void PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
 {
 	ppcImlGenContext->emitInst().make_fpr_r(IMLOperation::OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegister);

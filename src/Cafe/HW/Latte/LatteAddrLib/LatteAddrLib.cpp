@@ -45,11 +45,6 @@ namespace LatteAddrLib
 		return (m_configFlags >> 25) & 1;
 	}
 
-	bool GetFlagUseTileIndex()
-	{
-		return ((m_configFlags >> 24) & 1) != 0;
-	}
-
 	bool GetFlagNoCubeMipSlicesPad()
 	{
 		return ((m_configFlags >> 28) & 1) != 0;

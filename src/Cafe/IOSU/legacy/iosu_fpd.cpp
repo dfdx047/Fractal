@@ -164,18 +164,6 @@ namespace iosu
 			fpdDate->year = (uint16)((timestamp >> 26));
 		}
 
-		uint64 convertDateToFPDTimestamp(FPDDate* fpdDate)
-		{
-			uint64 t = 0;
-			t |= (uint64)fpdDate->second;
-			t |= ((uint64)fpdDate->minute<<6);
-			t |= ((uint64)fpdDate->hour<<12);
-			t |= ((uint64)fpdDate->day<<17);
-			t |= ((uint64)fpdDate->month<<22);
-			t |= ((uint64)(uint16)fpdDate->year<<26);
-			return t;
-		}
-
 		void NexPresenceToGameMode(const nexPresenceV2* presence, GameMode* gameMode)
 		{
 			memset(gameMode, 0, sizeof(GameMode));

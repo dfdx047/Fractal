@@ -1276,7 +1276,3 @@ bool FSTVerifier::VerifyHashedContentFile(FileStream* fileContent, const NCrypto
 	return true;
 }
 
-void FSTVolumeTest()
-{
-	FSTPathUnitTest();
-}
