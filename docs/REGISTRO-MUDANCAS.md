@@ -55,8 +55,10 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   laço ocioso em `clock_gettime` e nas travas do timer e do áudio. A versão sem travas não deu fps no RP5, no POCO nem no
   A3. Ficou de fora.
 - **FIFA 13, mistura de áudio com 0 canais de saída** (correção de título em `rpl.cpp`, não commitada): tirou o crash
-  aos 6 s no RP5, mas trouxe crashes por volta de 100 s nos dois drivers. Em teste contra a build sem a correção antes de
-  decidir.
+  aos 12 s no RP5, mas o jogo ainda crasha por volta de 100 s na mesma thread de áudio (4 de 6 runs). A build sem a correção
+  crasha aos 12-16 s em 4 de 6 runs (system 1 de 2 válidos, T19 em sysmem 3 de 3). Ou seja, a correção adia o crash e não o
+  causa. Guardada em `Fractal-trabalho/diffs/2026-11-18_fifa13_audio_0canais.diff`. Single-core não serve: o jogo
+  fica na tela preta do boot (sem crash só porque não chega ao áudio).
 
 ### Como os testes rodam
 
@@ -64,4 +66,5 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   substitui o perfil padrão de `bin/gameProfiles/default`. Por isso, configurações do padrão, como `turnipSysmem = false`
   no FIFA 13, não valem no teste. Quando a configuração do padrão importar, passe-a em `EXTRA_PROFILE`.
 - Dois aparelhos não podem usar o mesmo nome de teste no mesmo dia: a pasta é a mesma e um sobrescreve o outro.
+- Um run "sem crash" não basta: confira os prints. O FIFA em single-core deu 60 fps sem crash com a tela toda preta.
 - Depois de copiar um `.wua`, confira o `md5sum`. Uma cópia feita com pouco espaço saiu corrompida sem erro do adb.

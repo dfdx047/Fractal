@@ -216,6 +216,8 @@ void SetThreadName(const char* name);
 // Linux/Android: restrict the calling thread to the CPUs outside the slowest cluster (by cpuinfo_max_freq).
 // Returns the number of CPUs in the new mask, or 0 if nothing changed (one cluster only, or unsupported)
 int PinCurrentThreadToFastCores();
+// pins the calling thread to the host CPUs in mask (bit n = cpu n); returns false if the mask is 0 or the call failed
+bool PinCurrentThreadToCpuMask(uint64 mask);
 
 inline uint64 MakeU64(uint32 high, uint32 low)
 {

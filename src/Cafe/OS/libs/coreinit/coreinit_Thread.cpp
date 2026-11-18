@@ -1499,6 +1499,12 @@ namespace coreinit
 		// fast_cores bit 0: keep the PPC core threads off the slowest CPU cluster
 		if (PerfLog::Tunable("fast_cores", 0) & 1)
 			cemuLog_log(LogType::Force, "OSSched[core={}]: pinned to {} fast CPUs", __OSAssignedCoreIndex(), PinCurrentThreadToFastCores());
+		// cpu_mask_ppc / cpu_mask_ppc<N> (decimal bit mask of host CPUs): affinity experiments per emulated core
+		{
+			const uint64 mask = (uint64)PerfLog::Tunable(fmt::format("cpu_mask_ppc{}", __OSAssignedCoreIndex()), PerfLog::Tunable("cpu_mask_ppc", 0));
+			if (mask && PinCurrentThreadToCpuMask(mask))
+				cemuLog_log(LogType::Force, "OSSched[core={}]: pinned to CPU mask {:#x}", __OSAssignedCoreIndex(), mask);
+		}
 
 		ConfigureHostFloatingPointEnvironment();
 

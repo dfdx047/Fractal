@@ -269,6 +269,18 @@ std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compr
 	return decompressed;
 }
 
+bool PinCurrentThreadToCpuMask(uint64 mask)
+{
+	if (mask == 0)
+		return false;
+	cpu_set_t set;
+	CPU_ZERO(&set);
+	for (int cpu = 0; cpu < 64 && cpu < CPU_SETSIZE; cpu++)
+		if (mask & (1ull << cpu))
+			CPU_SET(cpu, &set);
+	return sched_setaffinity(0, sizeof(set), &set) == 0;
+}
+
 int PinCurrentThreadToFastCores()
 {
 	static const std::vector<int> s_fastCpus = []() {

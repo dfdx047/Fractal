@@ -546,6 +546,8 @@ void PPCRecompiler_recompileAtAddress(uint32 address)
 void PPCRecompiler_thread()
 {
 	SetThreadName("PPCRecompiler");
+	if (const uint64 mask = (uint64)PerfLog::Tunable("cpu_mask_jit", 0); mask && PinCurrentThreadToCpuMask(mask))
+		cemuLog_log(LogType::Force, "PPCRecompiler: pinned to CPU mask {:#x}", mask);
 #if PPCREC_FORCE_SYNCHRONOUS_COMPILATION
 	return;
 #endif
