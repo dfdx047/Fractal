@@ -106,11 +106,11 @@ start=$(date +%s)
 
 # clocks and thermal state every 2 s (the RP5 caps its GPU at 400 of 905 MHz when hot, which changes every result)
 $A shell "i=0; g=/sys/class/kgsl/kgsl-3d0; m=\$(ls -d /sys/class/devfreq/*.gpu 2>/dev/null | head -1); \
-  c=\$(ls -d /sys/devices/system/cpu/cpufreq/policy* | tail -1); echo t_s,gpu_mhz,gpu_max_mhz,big_cpu_max_mhz,battery_c,skin_c; \
+  c=\$(ls -d /sys/devices/system/cpu/cpufreq/policy* | tail -1); echo t_s,gpu_mhz,gpu_max_mhz,big_cpu_max_mhz,battery_c,skin_c,battery_ma,battery_mv; b=/sys/class/power_supply/battery; \
   s=/dev/null; for z in /sys/class/thermal/thermal_zone*; do case \$(cat \$z/type) in skin-therm-usr|board-thmzone) s=\$z/temp;; esac; done; \
   while [ \$i -lt $DUR ]; do \
     if [ -e \$g/gpuclk ]; then gc=\$(cat \$g/gpuclk); gm=\$(cat \$g/max_gpuclk); else gc=\$(cat \$m/cur_freq); gm=\$(cat \$m/max_freq); fi; \
-    echo \$i,\$((gc/1000000)),\$((gm/1000000)),\$((\$(cat \$c/scaling_max_freq)/1000)),\$((\$(cat /sys/class/power_supply/battery/temp)/10)),\$((\$(cat \$s 2>/dev/null || echo 0)/1000)); \
+    echo \$i,\$((gc/1000000)),\$((gm/1000000)),\$((\$(cat \$c/scaling_max_freq)/1000)),\$((\$(cat /sys/class/power_supply/battery/temp)/10)),\$((\$(cat \$s 2>/dev/null || echo 0)/1000)),\$((\$(cat \$b/current_now 2>/dev/null || echo 0)/1000)),\$((\$(cat \$b/voltage_now 2>/dev/null || echo 0)/1000)); \
     sleep 2; i=\$((i+2)); done" > "$OUT/clocks_$SCENE.csv" 2>/dev/null &
 
 for t in $SHOTS; do
