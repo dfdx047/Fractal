@@ -1,0 +1,482 @@
+// Verbatim copy of the BC block decoders from LatteTextureLoader.cpp before they moved to LatteTextureLoaderBC.cpp
+// (commit 49825b38). Reference for bc_test.cpp, together with the texel loops of the old *_To_* decoders
+#pragma once
+namespace old_bc
+{
+void decodeBC1Block(uint8* inputData, float* output4x4RGBA)
+{
+	// read colors
+	uint16 c0 = *(uint16*)(inputData + 0);
+	uint16 c1 = *(uint16*)(inputData + 2);
+	// decode colors (RGB565 -> RGB888)
+	float r[4];
+	float g[4];
+	float b[4];
+	float a[4];
+	b[0] = (float)((c0 >> 0) & 0x1F) / 31.0f;
+	b[1] = (float)((c1 >> 0) & 0x1F) / 31.0f;
+	g[0] = (float)((c0 >> 5) & 0x3F) / 63.0f;
+	g[1] = (float)((c1 >> 5) & 0x3F) / 63.0f;
+	r[0] = (float)((c0 >> 11) & 0x1F) / 31.0f;
+	r[1] = (float)((c1 >> 11) & 0x1F) / 31.0f;
+	a[0] = 1.0f;
+	a[1] = 1.0f;
+	a[2] = 1.0f;
+
+	if (c0 > c1)
+	{
+		r[2] = (r[0] * 2.0f + r[1]) / 3.0f;
+		r[3] = (r[0] * 1.0f + r[1] * 2.0f) / 3.0f;
+		g[2] = (g[0] * 2.0f + g[1]) / 3.0f;
+		g[3] = (g[0] * 1.0f + g[1] * 2.0f) / 3.0f;
+		b[2] = (b[0] * 2.0f + b[1]) / 3.0f;
+		b[3] = (b[0] * 1.0f + b[1] * 2.0f) / 3.0f;
+		a[3] = 1.0f;
+	}
+	else
+	{
+		r[2] = (r[0] + r[1]) / 2.0f;
+		r[3] = 0.0f;
+		g[2] = (g[0] + g[1]) / 2.0f;
+		g[3] = 0.0f;
+		b[2] = (b[0] + b[1]) / 2.0f;
+		b[3] = 0.0f;
+		a[3] = 0.0f;
+	}
+
+	uint8* indexData = inputData + 4;
+	float* colorOutputRGBA = output4x4RGBA;
+	for (sint32 row = 0; row < 4; row++)
+	{
+		uint8 i0 = ((*indexData) >> 0) & 3;
+		uint8 i1 = ((*indexData) >> 2) & 3;
+		uint8 i2 = ((*indexData) >> 4) & 3;
+		uint8 i3 = ((*indexData) >> 6) & 3;
+		colorOutputRGBA[0] = r[i0];
+		colorOutputRGBA[1] = g[i0];
+		colorOutputRGBA[2] = b[i0];
+		colorOutputRGBA[3] = a[i0];
+		colorOutputRGBA += 4;
+		colorOutputRGBA[0] = r[i1];
+		colorOutputRGBA[1] = g[i1];
+		colorOutputRGBA[2] = b[i1];
+		colorOutputRGBA[3] = a[i1];
+		colorOutputRGBA += 4;
+		colorOutputRGBA[0] = r[i2];
+		colorOutputRGBA[1] = g[i2];
+		colorOutputRGBA[2] = b[i2];
+		colorOutputRGBA[3] = a[i2];
+		colorOutputRGBA += 4;
+		colorOutputRGBA[0] = r[i3];
+		colorOutputRGBA[1] = g[i3];
+		colorOutputRGBA[2] = b[i3];
+		colorOutputRGBA[3] = a[i3];
+		colorOutputRGBA += 4;
+		indexData++;
+	}
+}
+
+void decodeBC2Block_UNORM(uint8* inputData, float* imageRGBA)
+{
+	uint32 color0 = *(uint16*)(inputData + 8);
+	uint32 color1 = *(uint16*)(inputData + 10);
+	uint32 colorIndices = *(uint32*)(inputData + 12);
+
+	uint8 r0 = (color0 >> 11) & 0x1F;
+	uint8 g0 = (color0 >> 5) & 0x3F;
+	uint8 b0 = (color0 >> 0) & 0x1F;
+
+	uint8 r1 = (color1 >> 11) & 0x1F;
+	uint8 g1 = (color1 >> 5) & 0x3F;
+	uint8 b1 = (color1 >> 0) & 0x1F;
+
+	float r[4];
+	float g[4];
+	float b[4];
+	r[0] = (float)r0 / 31.0f;
+	r[1] = (float)r1 / 31.0f;
+	r[2] = (r[0] * 2.0f + r[1]) / 3.0f;
+	r[3] = (r[0] + r[1] * 2.0f) / 3.0f;
+	g[0] = (float)g0 / 63.0f;
+	g[1] = (float)g1 / 63.0f;
+	g[2] = (g[0] * 2.0f + g[1]) / 3.0f;
+	g[3] = (g[0] + g[1] * 2.0f) / 3.0f;
+	b[0] = (float)b0 / 31.0f;
+	b[1] = (float)b1 / 31.0f;
+	b[2] = (b[0] * 2.0f + b[1]) / 3.0f;
+	b[3] = (b[0] + b[1] * 2.0f) / 3.0f;
+
+	for (sint32 py = 0; py < 4; py++)
+	{
+		for (sint32 px = 0; px < 4; px++)
+		{
+			uint8 colorIndex = (colorIndices >> (2 * (px + 4 * py))) & 0x03;
+			sint32 pixelOffset = (px + py * 4) * 4;
+			imageRGBA[pixelOffset + 0] = r[colorIndex];
+			imageRGBA[pixelOffset + 1] = g[colorIndex];
+			imageRGBA[pixelOffset + 2] = b[colorIndex];
+		}
+	}
+
+	// decode alpha
+	uint8* alphaData = (uint8*)(inputData + 0);
+	for (sint32 py = 0; py < 4; py++)
+	{
+		for (sint32 px = 0; px < 4; px++)
+		{
+			uint32 alphaIndex = (px + py * 4);
+			uint8 alphaCode = (alphaData[alphaIndex / 2] >> ((alphaIndex & 1) * 4)) & 0xF;
+			alphaCode |= (alphaCode << 4);
+			sint32 pixelOffset = (px + py * 4) * 4;
+			imageRGBA[pixelOffset + 3] = (float)alphaCode / 255.0f; // alpha
+		}
+	}
+}
+
+void decodeBC3Block_UNORM(uint8* inputData, float* imageRGBA)
+{
+	uint32 color0 = *(uint16*)(inputData + 8);
+	uint32 color1 = *(uint16*)(inputData + 10);
+	uint32 colorIndices = *(uint32*)(inputData + 12);
+
+	uint8 r0 = (color0 >> 11) & 0x1F;
+	uint8 g0 = (color0 >> 5) & 0x3F;
+	uint8 b0 = (color0 >> 0) & 0x1F;
+
+	uint8 r1 = (color1 >> 11) & 0x1F;
+	uint8 g1 = (color1 >> 5) & 0x3F;
+	uint8 b1 = (color1 >> 0) & 0x1F;
+
+	float r[4];
+	float g[4];
+	float b[4];
+	r[0] = (float)r0 / 31.0f;
+	r[1] = (float)r1 / 31.0f;
+	r[2] = (r[0] * 2.0f + r[1]) / 3.0f;
+	r[3] = (r[0] + r[1] * 2.0f) / 3.0f;
+	g[0] = (float)g0 / 63.0f;
+	g[1] = (float)g1 / 63.0f;
+	g[2] = (g[0] * 2.0f + g[1]) / 3.0f;
+	g[3] = (g[0] + g[1] * 2.0f) / 3.0f;
+	b[0] = (float)b0 / 31.0f;
+	b[1] = (float)b1 / 31.0f;
+	b[2] = (b[0] * 2.0f + b[1]) / 3.0f;
+	b[3] = (b[0] + b[1] * 2.0f) / 3.0f;
+
+	for (sint32 py = 0; py < 4; py++)
+	{
+		for (sint32 px = 0; px < 4; px++)
+		{
+			uint8 colorIndex = (colorIndices >> (2 * (px + 4 * py))) & 0x03;
+			sint32 pixelOffset = (px + py * 4) * 4;
+			imageRGBA[pixelOffset + 0] = r[colorIndex];
+			imageRGBA[pixelOffset + 1] = g[colorIndex];
+			imageRGBA[pixelOffset + 2] = b[colorIndex];
+			//imageRGBA[pixelOffset+3] = 1.0f; // alpha
+		}
+	}
+
+	// decode alpha
+	uint8 alpha0 = *(uint8*)(inputData + 0);
+	uint8 alpha1 = *(uint8*)(inputData + 1);
+	uint32 alphaCodeRow[2] = { 0 };
+	alphaCodeRow[0] |= ((*(uint8*)(inputData + 2)) << 0);
+	alphaCodeRow[0] |= ((*(uint8*)(inputData + 3)) << 8);
+	alphaCodeRow[0] |= ((*(uint8*)(inputData + 4)) << 16);
+	alphaCodeRow[1] |= ((*(uint8*)(inputData + 5)) << 0);
+	alphaCodeRow[1] |= ((*(uint8*)(inputData + 6)) << 8);
+	alphaCodeRow[1] |= ((*(uint8*)(inputData + 7)) << 16);
+
+	float a[8];
+	a[0] = (float)alpha0 / 255.0f;
+	a[1] = (float)alpha1 / 255.0f;
+
+	if (alpha0 > alpha1)
+	{
+		// 6 interpolated alpha values.
+		a[2] = (a[0] * 6.0f + a[1] * 1.0f) / 7.0f;
+		a[3] = (a[0] * 5.0f + a[1] * 2.0f) / 7.0f;
+		a[4] = (a[0] * 4.0f + a[1] * 3.0f) / 7.0f;
+		a[5] = (a[0] * 3.0f + a[1] * 4.0f) / 7.0f;
+		a[6] = (a[0] * 2.0f + a[1] * 5.0f) / 7.0f;
+		a[7] = (a[0] * 1.0f + a[1] * 6.0f) / 7.0f;
+	}
+	else
+	{
+		// 4 interpolated alpha values.
+		a[2] = (a[0] * 4.0f + a[1] * 1.0f) / 5.0f;
+		a[3] = (a[0] * 3.0f + a[1] * 2.0f) / 5.0f;
+		a[4] = (a[0] * 2.0f + a[1] * 3.0f) / 5.0f;
+		a[5] = (a[0] * 1.0f + a[1] * 4.0f) / 5.0f;
+		a[6] = 0.0f;
+		a[7] = 1.0f;
+	}
+
+	for (sint32 py = 0; py < 4; py++)
+	{
+		for (sint32 px = 0; px < 4; px++)
+		{
+			uint8 alphaCode = (alphaCodeRow[py / 2] >> 3 * (px + 4 * (py & 1))) & 0x07;
+			sint32 pixelOffset = (px + py * 4) * 4;
+			imageRGBA[pixelOffset + 3] = a[alphaCode]; // alpha
+		}
+	}
+}
+
+void decodeBC4Block_UNORM(uint8* blockStorage, float* rOutput)
+{
+	uint8* blockInput = (uint8*)blockStorage;
+	float red[8];
+
+	red[0] = ((float)(*(uint8*)(blockInput + 0))) / 255.0f;
+	red[1] = ((float)(*(uint8*)(blockInput + 1))) / 255.0f;
+
+	if (blockInput[0] > blockInput[1])
+	{
+		// 6 interpolated color values
+		red[2] = (6 * red[0] + 1 * red[1]) / 7.0f; // bit code 010
+		red[3] = (5 * red[0] + 2 * red[1]) / 7.0f; // bit code 011
+		red[4] = (4 * red[0] + 3 * red[1]) / 7.0f; // bit code 100
+		red[5] = (3 * red[0] + 4 * red[1]) / 7.0f; // bit code 101
+		red[6] = (2 * red[0] + 5 * red[1]) / 7.0f; // bit code 110
+		red[7] = (1 * red[0] + 6 * red[1]) / 7.0f; // bit code 111
+	}
+	else
+	{
+		// 4 interpolated color values
+		red[2] = (4 * red[0] + 1 * red[1]) / 5.0f; // bit code 010
+		red[3] = (3 * red[0] + 2 * red[1]) / 5.0f; // bit code 011
+		red[4] = (2 * red[0] + 3 * red[1]) / 5.0f; // bit code 100
+		red[5] = (1 * red[0] + 4 * red[1]) / 5.0f; // bit code 101
+		red[6] = 0.0f;                       // bit code 110
+		red[7] = 1.0f;                       // bit code 111
+	}
+
+	uint8* bitIndices = blockInput + 2;
+	uint32 redRow0 = (((uint32)bitIndices[2]) << 16) | (((uint32)bitIndices[1]) << 8) | (((uint32)bitIndices[0]) << 0);
+	uint32 redRow1 = (((uint32)bitIndices[5]) << 16) | (((uint32)bitIndices[4]) << 8) | (((uint32)bitIndices[3]) << 0);
+
+	uint8 pRed[16];
+	for (sint32 i = 0; i < 8; i++)
+	{
+		pRed[i] = (redRow0 >> (i * 3)) & 7;
+		pRed[i + 8] = (redRow1 >> (i * 3)) & 7;
+	}
+
+	float* pixelOutput = rOutput;
+	for (sint32 py = 0; py < 4; py++)
+	{
+		for (sint32 px = 0; px < 4; px++)
+		{
+			float c = red[pRed[px + py * 4]];
+			*pixelOutput = c;
+			pixelOutput++;
+		}
+	}
+}
+
+// BC4 with signed endpoints (BC4_SNORM), result in -1.0 .. 1.0
+void decodeBC4Block_SNORM(uint8* blockStorage, float* rOutput)
+{
+	uint8* blockInput = (uint8*)blockStorage;
+	float red[8];
+	const sint8 e0 = *(sint8*)(blockInput + 0);
+	const sint8 e1 = *(sint8*)(blockInput + 1);
+	red[0] = std::max((float)e0 / 127.0f, -1.0f);
+	red[1] = std::max((float)e1 / 127.0f, -1.0f);
+	if (e0 > e1)
+	{
+		for (sint32 i = 0; i < 6; i++)
+			red[2 + i] = ((6 - i) * red[0] + (1 + i) * red[1]) / 7.0f;
+	}
+	else
+	{
+		for (sint32 i = 0; i < 4; i++)
+			red[2 + i] = ((4 - i) * red[0] + (1 + i) * red[1]) / 5.0f;
+		red[6] = -1.0f;
+		red[7] = 1.0f;
+	}
+	uint8* bitIndices = blockInput + 2;
+	uint32 redRow0 = (((uint32)bitIndices[2]) << 16) | (((uint32)bitIndices[1]) << 8) | (((uint32)bitIndices[0]) << 0);
+	uint32 redRow1 = (((uint32)bitIndices[5]) << 16) | (((uint32)bitIndices[4]) << 8) | (((uint32)bitIndices[3]) << 0);
+	for (sint32 i = 0; i < 8; i++)
+	{
+		rOutput[i] = red[(redRow0 >> (i * 3)) & 7];
+		rOutput[i + 8] = red[(redRow1 >> (i * 3)) & 7];
+	}
+}
+
+void decodeBC5Block_UNORM(uint8* blockStorage, float* rgOutput)
+{
+	uint8* blockInput = (uint8*)blockStorage;
+	float red[8];
+	float green[8];
+
+	red[0] = ((float)(*(uint8*)(blockInput + 0))) / 255.0f;
+	red[1] = ((float)(*(uint8*)(blockInput + 1))) / 255.0f;
+
+	if (red[0] > red[1])
+	{
+		// 6 interpolated color values
+		red[2] = (6 * red[0] + 1 * red[1]) / 7.0f; // bit code 010
+		red[3] = (5 * red[0] + 2 * red[1]) / 7.0f; // bit code 011
+		red[4] = (4 * red[0] + 3 * red[1]) / 7.0f; // bit code 100
+		red[5] = (3 * red[0] + 4 * red[1]) / 7.0f; // bit code 101
+		red[6] = (2 * red[0] + 5 * red[1]) / 7.0f; // bit code 110
+		red[7] = (1 * red[0] + 6 * red[1]) / 7.0f; // bit code 111
+	}
+	else
+	{
+		// 4 interpolated color values
+		red[2] = (4 * red[0] + 1 * red[1]) / 5.0f; // bit code 010
+		red[3] = (3 * red[0] + 2 * red[1]) / 5.0f; // bit code 011
+		red[4] = (2 * red[0] + 3 * red[1]) / 5.0f; // bit code 100
+		red[5] = (1 * red[0] + 4 * red[1]) / 5.0f; // bit code 101
+		red[6] = 0.0f;                       // bit code 110
+		red[7] = 1.0f;                       // bit code 111
+	}
+
+	green[0] = ((float)(*(uint8*)(blockInput + 8))) / 255.0f;
+	green[1] = ((float)(*(uint8*)(blockInput + 9))) / 255.0f;
+
+	if (green[0] > green[1])
+	{
+		// 6 interpolated color values
+		green[2] = (6 * green[0] + 1 * green[1]) / 7.0f; // bit code 010
+		green[3] = (5 * green[0] + 2 * green[1]) / 7.0f; // bit code 011
+		green[4] = (4 * green[0] + 3 * green[1]) / 7.0f; // bit code 100
+		green[5] = (3 * green[0] + 4 * green[1]) / 7.0f; // bit code 101
+		green[6] = (2 * green[0] + 5 * green[1]) / 7.0f; // bit code 110
+		green[7] = (1 * green[0] + 6 * green[1]) / 7.0f; // bit code 111
+	}
+	else
+	{
+		// 4 interpolated color values
+		green[2] = (4 * green[0] + 1 * green[1]) / 5.0f; // bit code 010
+		green[3] = (3 * green[0] + 2 * green[1]) / 5.0f; // bit code 011
+		green[4] = (2 * green[0] + 3 * green[1]) / 5.0f; // bit code 100
+		green[5] = (1 * green[0] + 4 * green[1]) / 5.0f; // bit code 101
+		green[6] = 0.0f;						   // bit code 110
+		green[7] = 1.0f;                           // bit code 111
+	}
+
+
+	uint8* bitIndices = blockInput + 2;
+	uint32 redRow0 = (((uint32)bitIndices[2]) << 16) | (((uint32)bitIndices[1]) << 8) | (((uint32)bitIndices[0]) << 0);
+	uint32 redRow1 = (((uint32)bitIndices[5]) << 16) | (((uint32)bitIndices[4]) << 8) | (((uint32)bitIndices[3]) << 0);
+	bitIndices = blockInput + 8 + 2;
+	uint32 greenRow0 = (((uint32)bitIndices[2]) << 16) | (((uint32)bitIndices[1]) << 8) | (((uint32)bitIndices[0]) << 0);
+	uint32 greenRow1 = (((uint32)bitIndices[5]) << 16) | (((uint32)bitIndices[4]) << 8) | (((uint32)bitIndices[3]) << 0);
+
+	uint8 pRed[16];
+	uint8 pGreen[16];
+	for (sint32 i = 0; i < 8; i++)
+	{
+		pRed[i] = (redRow0 >> (i * 3)) & 7;
+		pRed[i + 8] = (redRow1 >> (i * 3)) & 7;
+		pGreen[i] = (greenRow0 >> (i * 3)) & 7;
+		pGreen[i + 8] = (greenRow1 >> (i * 3)) & 7;
+	}
+
+	float* pixelOutput = rgOutput;
+	for (sint32 py = 0; py < 4; py++)
+	{
+		for (sint32 px = 0; px < 4; px++)
+		{
+			float c = red[pRed[px + py * 4]];
+			*pixelOutput = c;
+			pixelOutput++;
+			c = green[pGreen[px + py * 4]];
+			*pixelOutput = c;
+			pixelOutput++;
+		}
+	}
+}
+
+void decodeBC5Block_SNORM(uint8* blockStorage, float* rgOutput) // todo - can merge this with the UNORM implementation by using a template?
+{
+	uint8* blockInput = (uint8*)blockStorage;
+	float red[8];
+	float green[8];
+
+	// SNORM endpoints: -128 and -127 are both -1.0, 127 is 1.0
+	red[0] = std::max((float)(*(sint8*)(blockInput + 0)) / 127.0f, -1.0f);
+	red[1] = std::max((float)(*(sint8*)(blockInput + 1)) / 127.0f, -1.0f);
+
+	if (red[0] > red[1])
+	{
+		// 6 interpolated color values
+		red[2] = (6 * red[0] + 1 * red[1]) / 7.0f; // bit code 010
+		red[3] = (5 * red[0] + 2 * red[1]) / 7.0f; // bit code 011
+		red[4] = (4 * red[0] + 3 * red[1]) / 7.0f; // bit code 100
+		red[5] = (3 * red[0] + 4 * red[1]) / 7.0f; // bit code 101
+		red[6] = (2 * red[0] + 5 * red[1]) / 7.0f; // bit code 110
+		red[7] = (1 * red[0] + 6 * red[1]) / 7.0f; // bit code 111
+	}
+	else
+	{
+		// 4 interpolated color values
+		red[2] = (4 * red[0] + 1 * red[1]) / 5.0f; // bit code 010
+		red[3] = (3 * red[0] + 2 * red[1]) / 5.0f; // bit code 011
+		red[4] = (2 * red[0] + 3 * red[1]) / 5.0f; // bit code 100
+		red[5] = (1 * red[0] + 4 * red[1]) / 5.0f; // bit code 101
+		red[6] = -1.0f;                       // bit code 110
+		red[7] = 1.0f;                       // bit code 111
+	}
+
+	green[0] = std::max((float)(*(sint8*)(blockInput + 8)) / 127.0f, -1.0f);
+	green[1] = std::max((float)(*(sint8*)(blockInput + 9)) / 127.0f, -1.0f);
+
+	if (green[0] > green[1])
+	{
+		// 6 interpolated color values
+		green[2] = (6 * green[0] + 1 * green[1]) / 7.0f; // bit code 010
+		green[3] = (5 * green[0] + 2 * green[1]) / 7.0f; // bit code 011
+		green[4] = (4 * green[0] + 3 * green[1]) / 7.0f; // bit code 100
+		green[5] = (3 * green[0] + 4 * green[1]) / 7.0f; // bit code 101
+		green[6] = (2 * green[0] + 5 * green[1]) / 7.0f; // bit code 110
+		green[7] = (1 * green[0] + 6 * green[1]) / 7.0f; // bit code 111
+	}
+	else
+	{
+		// 4 interpolated color values
+		green[2] = (4 * green[0] + 1 * green[1]) / 5.0f; // bit code 010
+		green[3] = (3 * green[0] + 2 * green[1]) / 5.0f; // bit code 011
+		green[4] = (2 * green[0] + 3 * green[1]) / 5.0f; // bit code 100
+		green[5] = (1 * green[0] + 4 * green[1]) / 5.0f; // bit code 101
+		green[6] = -1.0f;                       // bit code 110
+		green[7] = 1.0f;                       // bit code 111
+	}
+
+
+	uint8* bitIndices = blockInput + 2;
+	uint32 redRow0 = (((uint32)bitIndices[2]) << 16) | (((uint32)bitIndices[1]) << 8) | (((uint32)bitIndices[0]) << 0);
+	uint32 redRow1 = (((uint32)bitIndices[5]) << 16) | (((uint32)bitIndices[4]) << 8) | (((uint32)bitIndices[3]) << 0);
+	bitIndices = blockInput + 8 + 2;
+	uint32 greenRow0 = (((uint32)bitIndices[2]) << 16) | (((uint32)bitIndices[1]) << 8) | (((uint32)bitIndices[0]) << 0);
+	uint32 greenRow1 = (((uint32)bitIndices[5]) << 16) | (((uint32)bitIndices[4]) << 8) | (((uint32)bitIndices[3]) << 0);
+
+	uint8 pRed[16];
+	uint8 pGreen[16];
+	for (sint32 i = 0; i < 8; i++)
+	{
+		pRed[i] = (redRow0 >> (i * 3)) & 7;
+		pRed[i + 8] = (redRow1 >> (i * 3)) & 7;
+		pGreen[i] = (greenRow0 >> (i * 3)) & 7;
+		pGreen[i + 8] = (greenRow1 >> (i * 3)) & 7;
+	}
+
+	for (sint32 py = 0; py < 4; py++)
+	{
+		float* pixelOutput = rgOutput + (py * 4) * 2;
+		for (sint32 px = 0; px < 4; px++)
+		{
+			float c = red[pRed[px + py * 4]];
+			pixelOutput[0] = c;
+			c = green[pGreen[px + py * 4]];
+			pixelOutput[1] = c;
+			pixelOutput += 2;
+		}
+	}
+}
+} // namespace old_bc

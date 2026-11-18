@@ -1971,6 +1971,87 @@ static const std::vector<RPLTitleFix>& RPLLoader_TitleFixes()
 			7,
 			{0x811A0008, 0x83680000, 0x839B0028, 0x2C1C0000, 0x41820090},
 		},
+		// Hot Wheels World's Best Driver, wuGraphicsCore::syncOnCommand: the main thread signals command event [i] for the
+		// render thread, then reads the buffer index i again to wait on done event [i]. The render thread runs the
+		// command, signals done [i] and flips i; when it does that before the second read (the main thread's host core
+		// was preempted), the main thread waits on the other done event, which nothing signals: frozen picture on a load
+		// (RP5, 1 run in 3). The index is now kept in r28 (saved by the function, set back to 0 before its later use):
+		//   lwz r10,6464(r30); mulli r28,r10,36; addi r12,r30,6548; add r3,r12,r28; bl OSSignalEvent; ...
+		//   mr r11,r28; li r28,0; add r3,r29,r11; bl OSWaitEvent
+		// Two entries because a call ("bla" once the imports are linked) sits between the replaced words; the second only
+		// matches after the first applied.
+		{
+			"Hot Wheels World's Best Driver: render command index read twice (1/2)",
+			{0x0005000010143300ull},
+			{
+				0x815E1940, 0x1C0A0024, 0x399E1994, 0x7C6C0214, kAnyBranchAbs, 0x387E19DC, kAnyBranchAbs,
+				0x819E1940, 0x1D6C0024, 0x7C7D5A14, kAnyBranchAbs,
+			},
+			1,
+			{0x1F8A0024, 0x399E1994, 0x7C6CE214},
+		},
+		{
+			"Hot Wheels World's Best Driver: render command index read twice (2/2)",
+			{0x0005000010143300ull},
+			{
+				0x815E1940, 0x1F8A0024, 0x399E1994, 0x7C6CE214, kAnyBranchAbs, 0x387E19DC, kAnyBranchAbs,
+				0x819E1940, 0x1D6C0024, 0x7C7D5A14, kAnyBranchAbs,
+			},
+			7,
+			{0x7F8BE378, 0x3B800000},
+		},
+		// Hot Wheels World's Best Driver, wuGraphicsCore::tick (render thread), after running a display buffer: it signals
+		// done event [i] and only then flips the buffer index i. syncOnCommand waits for both done events and then reads
+		// i; when it gets in between the signal and the flip (the render thread's host core preempted right after the
+		// call), it posts its command on event [i] while the render thread goes on to wait on the other one: both wait
+		// forever (frozen picture on a load, RP5 1 run in 8 even with the fix above). Both flip sites now store the new
+		// index first. There is no room for that before the call, so the code jumps over it and back (r0 / r6 hold the
+		// old index across the jump):
+		//   lwz r0,6464(r31); xori r5,r0,1; stw r5,6464(r31); b 1f; 2: bla OSSignalEvent; b 3f
+		//   1: mulli r5,r0,36; addi r11,r31,6476; add r3,r11,r5; b 2b; 3: (epilogue)
+		{
+			"Hot Wheels World's Best Driver: buffer index flipped after the done signal (1/4)",
+			{0x0005000010143300ull},
+			{
+				0x801F1940, 0x1CA00024, 0x397F194C, 0x7C6B2A14, kAnyBranchAbs, 0x80FF1940, 0x38A70001, 0x28050002,
+				0x40800038, 0x90BF1940, 0xBAA10254,
+			},
+			1,
+			{0x68050001, 0x90BF1940, 0x4800000C},
+		},
+		{
+			"Hot Wheels World's Best Driver: buffer index flipped after the done signal (2/4)",
+			{0x0005000010143300ull},
+			{
+				0x801F1940, 0x68050001, 0x90BF1940, 0x4800000C, kAnyBranchAbs, 0x80FF1940, 0x38A70001, 0x28050002,
+				0x40800038, 0x90BF1940, 0xBAA10254,
+			},
+			5,
+			{0x48000014, 0x1CA00024, 0x397F194C, 0x7C6B2A14, 0x4BFFFFEC},
+		},
+		// the second site, with the old index in r6:
+		//   xori r5,r6,1; stw r5,6464(r31); b 1f; 2: bla OSSignalEvent; b 3f
+		//   1: mulli r0,r6,36; addi r12,r31,6476; add r3,r12,r0; b 2b; 3: lwz r6,6996(r31); nop; ...
+		{
+			"Hot Wheels World's Best Driver: buffer index flipped after the done signal (3/4)",
+			{0x0005000010143300ull},
+			{
+				0x1C060024, 0x399F194C, 0x7C6C0214, kAnyBranchAbs, 0x80BF1940, 0x38A50001, 0x28050002, 0x80DF1B54,
+				0x41800008, 0x7FC5F378, 0x90BF1940, 0x38C60001, 0x90DF1B54, 0xBAA10254,
+			},
+			0,
+			{0x68C50001, 0x90BF1940, 0x4800000C},
+		},
+		{
+			"Hot Wheels World's Best Driver: buffer index flipped after the done signal (4/4)",
+			{0x0005000010143300ull},
+			{
+				0x68C50001, 0x90BF1940, 0x4800000C, kAnyBranchAbs, 0x80BF1940, 0x38A50001, 0x28050002, 0x80DF1B54,
+				0x41800008, 0x7FC5F378, 0x90BF1940, 0x38C60001, 0x90DF1B54, 0xBAA10254,
+			},
+			4,
+			{0x48000014, 0x1C060024, 0x399F194C, 0x7C6C0214, 0x4BFFFFEC, 0x80DF1B54, 0x60000000},
+		},
 	};
 	return s_fixes;
 }

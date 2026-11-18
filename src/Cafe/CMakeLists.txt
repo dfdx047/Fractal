@@ -103,6 +103,7 @@ add_library(CemuCafe
   HW/Latte/Core/Latte.h
   HW/Latte/Core/LatteIndices.cpp
   HW/Latte/Core/LatteIndices.h
+  HW/Latte/Core/LatteIndicesMax.h
   HW/Latte/Core/LatteOverlay.cpp
   HW/Latte/Core/LatteOverlay.h
   HW/Latte/Core/LattePerfLog.cpp
@@ -131,6 +132,8 @@ add_library(CemuCafe
   HW/Latte/Core/LatteTextureLegacy.cpp
   HW/Latte/Core/LatteTextureLoader.cpp
   HW/Latte/Core/LatteTextureLoader.h
+  HW/Latte/Core/LatteTextureLoaderBC.cpp
+  HW/Latte/Core/LatteTextureLoaderBC.h
   HW/Latte/Core/LatteTextureReadback.cpp
   HW/Latte/Core/LatteTextureReadbackInfo.h
   HW/Latte/Core/LatteTextureView.cpp
