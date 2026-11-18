@@ -718,9 +718,6 @@ void LatteRenderTarget_itHLESwapScanBuffer()
 
 	LatteTC_CleanupUnusedTextures();
 	LatteSHRC_CleanupShaderStateCache();
-#ifdef ENABLE_OPENGL
-	LatteDraw_cleanupAfterFrame();
-#endif
 	LatteQuery_CancelActiveGPU7Queries();
 	LatteBufferCache_notifySwapTVScanBuffer();
 	LattePerformanceMonitor_frameBegin();

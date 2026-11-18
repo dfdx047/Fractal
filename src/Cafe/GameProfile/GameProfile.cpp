@@ -229,11 +229,6 @@ bool GameProfile::Load(uint64_t title_id)
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
 			gameProfile_loadBooleanOption2(iniParser, "fullSyncAtGX2DrawDone", m_fullSyncAtGX2DrawDone);
 			gameProfile_loadBooleanOption2(iniParser, "turnipSysmem", m_turnipSysmem);
-#ifdef ENABLE_METAL
-			gameProfile_loadBooleanOption2(iniParser, "shaderFastMath", m_shaderFastMath);
-			gameProfile_loadEnumOption(iniParser, "metalBufferCacheMode2", m_metalBufferCacheMode);
-			gameProfile_loadEnumOption(iniParser, "positionInvariance2", m_positionInvariance);
-#endif
 
 			// legacy support
 			auto option_precompiledShaders = iniParser.FindOption("precompiledShaders");
@@ -327,11 +322,6 @@ void GameProfile::Save(uint64_t title_id)
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_OPTIONAL_ENTRY(fullSyncAtGX2DrawDone);
 	WRITE_OPTIONAL_ENTRY(turnipSysmem);
-#ifdef ENABLE_METAL
-	WRITE_ENTRY(shaderFastMath);
-	WRITE_ENTRY_NUMBERED(metalBufferCacheMode, 2);
-	WRITE_ENTRY_NUMBERED(positionInvariance, 2);
-#endif
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
@@ -372,11 +362,6 @@ void GameProfile::ResetOptional()
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fullSyncAtGX2DrawDone.reset();
 	m_turnipSysmem.reset();
-#ifdef ENABLE_METAL
-	m_shaderFastMath = true;
-	m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
-	m_positionInvariance = PositionInvariance::Auto;
-#endif
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
 	m_cpuMode.reset(); // CPUModeOption::kSingleCoreRecompiler;
@@ -399,11 +384,6 @@ void GameProfile::Reset()
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fullSyncAtGX2DrawDone.reset();
 	m_turnipSysmem.reset();
-#ifdef ENABLE_METAL
-	m_shaderFastMath = true;
-	m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
-	m_positionInvariance = PositionInvariance::Auto;
-#endif
 	m_precompiledShaders = PrecompiledShaderOption::Auto;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;

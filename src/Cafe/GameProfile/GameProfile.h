@@ -37,11 +37,6 @@ public:
 	// Mesa Turnip only: render passes in system memory (TU_DEBUG=sysmem); unset means on. BotW hangs the GPU at boot with tiled (GMEM) rendering on Adreno 650
 	[[nodiscard]] const std::optional<bool>& GetTurnipSysmem() const { return m_turnipSysmem; }
 	void SetTurnipSysmem(std::optional<bool> v) { m_turnipSysmem = v; }
-#ifdef ENABLE_METAL
-	[[nodiscard]] bool GetShaderFastMath() const { return m_shaderFastMath; }
-	[[nodiscard]] MetalBufferCacheMode GetBufferCacheMode() const { return m_metalBufferCacheMode; }
-	[[nodiscard]] PositionInvariance GetPositionInvariance() const { return m_positionInvariance; }
-#endif
 	[[nodiscard]] const std::optional<PrecompiledShaderOption>& GetPrecompiledShadersState() const { return m_precompiledShaders; }
 
 	[[nodiscard]] uint32 GetThreadQuantum() const { return m_threadQuantum; }
@@ -93,11 +88,6 @@ public:
 	AccurateShaderMulOption m_accurateShaderMul = AccurateShaderMulOption::True;
 	std::optional<bool> m_fullSyncAtGX2DrawDone{};
 	std::optional<bool> m_turnipSysmem{};
-#ifdef ENABLE_METAL
-	bool m_shaderFastMath = true;
-	MetalBufferCacheMode m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
-	PositionInvariance m_positionInvariance = PositionInvariance::Auto;
-#endif
 	std::optional<PrecompiledShaderOption> m_precompiledShaders{};
 	// cpu settings
 	uint32 m_threadQuantum = kThreadQuantumDefault; // values: 20000 45000 60000 80000 100000

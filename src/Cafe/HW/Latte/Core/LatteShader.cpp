@@ -8,9 +8,7 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
-#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#endif
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/Renderer/Renderer.h"
@@ -18,9 +16,6 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
 #include "util/helpers/StateHasher.h"
-#ifdef ENABLE_METAL
-#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
-#endif
 
 // experimental new decompiler (WIP)
 #include "util/Zir/EmitterGLSL/ZpIREmitGLSL.h"
@@ -387,9 +382,6 @@ void LatteShader_FinishCompilation(LatteDecompilerShader* shader)
 	}
 	shader->shader->WaitForCompiled();
 
-#ifdef ENABLE_OPENGL
-	LatteShader_prepareSeparableUniforms(shader);
-#endif
 	LatteShader_CleanupAfterCompile(shader);
 }
 
@@ -542,36 +534,6 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	if (LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF())
 		vsHash += 0x1537;
 
-#ifdef ENABLE_METAL
-	if (g_renderer->GetType() == RendererAPI::Metal)
-	{
-	    bool isRectVertexShader = (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
-
-	    if ((usesGeometryShader || isRectVertexShader) || fetchShader->mtlFetchVertexManually)
-		{
-      		for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
-            {
-           	    LatteParsedFetchShaderBufferGroup& group = fetchShader->bufferGroups[g];
-          		uint32 bufferIndex = group.attributeBufferIndex;
-          		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-          		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
-                vsHash += (uint64)bufferStride;
-          		vsHash = std::rotl<uint64>(vsHash, 7);
-            }
-		}
-
-	    if (!(usesGeometryShader || isRectVertexShader))
-		{
-      		if (LatteGPUState.contextNew.IsRasterizationEnabled())
-      		    vsHash += 51ULL;
-
-            // Vertex fetch
-			if (fetchShader->mtlFetchVertexManually)
-                vsHash += 349ULL;
-		}
-	}
-#endif
 
 	_shaderBaseHash_vs = vsHash;
 
@@ -687,35 +649,6 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 		auxHash += (uint64)dim;
 	}
 
-#ifdef ENABLE_METAL
-	if (g_renderer->GetType() == RendererAPI::Metal)
-	{
-		// Textures as render targets
-		for (uint32 i = 0; i < pixelShader->textureUnitListCount; i++)
-		{
-		    uint8 t = pixelShader->textureUnitList[i];
-		    auxHash = std::rotl<uint64>(auxHash, 11);
-			auxHash += (uint64)pixelShader->textureRenderTargetIndex[t];
-		}
-
-		// Color buffers
-        for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
-        {
-            auto format = LatteMRT::GetColorBufferFormat(i, LatteGPUState.contextNew);
-            uint8 dataType = (uint8)GetMtlPixelFormatInfo(format, false).dataType;
-            auxHash = std::rotl<uint64>(auxHash, 7);
-            auxHash += (uint64)dataType;
-        }
-
-        // Depth buffer
-        bool hasDepthBuffer = LatteMRT::GetActiveDepthBufferMask(LatteGPUState.contextNew);
-        if (hasDepthBuffer)
-        {
-            auxHash = std::rotl<uint64>(auxHash, 5);
-            auxHash += 13u;
-        }
-	}
-#endif
 
 	return auxHash;
 }
@@ -825,12 +758,10 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 	options.usesGeometryShader = geometryShaderEnabled;
 	options.spirvInstrinsics.hasRoundingModeRTEFloat32 = false;
 	options.useTFViaSSBO = g_renderer->UseTFViaSSBO();
-#ifdef ENABLE_VULKAN
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
-#endif
 	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;
 	// perf/tuning.txt strict_mul=0 plain multiply, 1 0*x=0 emulation (default: game profile)
 	static const sint64 s_strictMul = PerfLog::Tunable("strict_mul", -1);
@@ -910,14 +841,6 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	LatteShader_CreateRendererShader(vertexShader, false);
 	performanceMonitor.numCompiledVS++;
 
-#ifdef ENABLE_OPENGL
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (vertexShader->shader)
-			vertexShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(vertexShader);
-	}
-#endif
 
 	LatteSHRC_RegisterShader(vertexShader, vertexShader->baseHash, vertexShader->auxHash);
 	return vertexShader;
@@ -941,14 +864,6 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	LatteShader_CreateRendererShader(geometryShader, false);
 	performanceMonitor.numCompiledGS++;
 
-#ifdef ENABLE_OPENGL
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (geometryShader->shader)
-			geometryShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(geometryShader);
-	}
-#endif
 
 	LatteSHRC_RegisterShader(geometryShader, geometryShader->baseHash, geometryShader->auxHash);
 	return geometryShader;
@@ -972,14 +887,6 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 		LatteShaderCache_writeSeparablePixelShader(_shaderBaseHash_ps, psAuxHash, pixelShaderPtr, pixelShaderSize, LatteGPUState.contextRegister, usesGeometryShader);
 	}
 
-#ifdef ENABLE_OPENGL
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (pixelShader->shader)
-			pixelShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(pixelShader);
-	}
-#endif
 
 	LatteSHRC_RegisterShader(pixelShader, _shaderBaseHash_ps, psAuxHash);
 	return pixelShader;
@@ -1102,18 +1009,6 @@ FORCE_INLINE uint64 CalcCombinedAuxHash(LatteFetchShader* fetchShader, LatteDeco
 	uint64 vsAuxHash = vertexShader ? LatteSHRC_CalcVSAuxHash(vertexShader, LatteGPUState.contextRegister) : 0;
 	uint64 psAuxHash = pixelShader ? LatteSHRC_CalcPSAuxHash(pixelShader, LatteGPUState.contextRegister) : 0;
 	uint64 combinedAuxHash = vsAuxHash + mix64(psAuxHash);
-#ifdef ENABLE_METAL
-	if (g_renderer->GetType() == RendererAPI::Metal && fetchShader)
-	{
-		for (auto& bufferGroup : fetchShader->bufferGroups)
-		{
-			uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferGroup.attributeBufferIndex * 7;
-			uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-			combinedAuxHash = std::rotl<uint64>(combinedAuxHash, 7);
-			combinedAuxHash += bufferStride;
-		}
-	}
-#endif
 	return combinedAuxHash;
 }
 
@@ -1255,13 +1150,6 @@ void LatteSHRC_UpdateActiveShaders()
 	hasher.MixIn(d, _activePSImportTable.key);
 	hasher.MixIn(LatteGPUState.contextRegister[mmSPI_PS_IN_CONTROL_0] & SPI_PS_IN_CONTROL_0_MASK, LatteGPUState.contextRegister[mmSPI_PS_IN_CONTROL_1] & SPI_PS_IN_CONTROL_1_MASK);
 	hasher.MixIn(LatteGPUState.contextRegister[mmSPI_INTERP_CONTROL_0] & SPI_INTERP_CONTROL_0_MASK, 0);
-#ifdef ENABLE_METAL
-	if (g_renderer->GetType() == RendererAPI::Metal)
-	{
-		uint64 mtlState = LatteGPUState.contextNew.IsRasterizationEnabled() ? 1 : 0;
-		hasher.MixInSingle(mtlState);
-	}
-#endif
 	uint64 h = hasher.Finish();
 
 	LatteGPUState.activeShaderHasError = false;

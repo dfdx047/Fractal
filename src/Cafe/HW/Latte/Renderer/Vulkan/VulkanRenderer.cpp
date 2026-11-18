@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"

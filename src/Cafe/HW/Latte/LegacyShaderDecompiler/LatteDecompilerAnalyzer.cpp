@@ -10,10 +10,6 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Common/MemPtr.h"
 #include "HW/Latte/ISA/LatteReg.h"
-#ifdef ENABLE_METAL
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "HW/Latte/Renderer/Metal/MetalRenderer.h"
-#endif
 
 // Defined in LatteTextureLegacy.cpp
 Latte::E_GX2SURFFMT LatteTexture_ReconstructGX2Format(const Latte::LATTE_SQ_TEX_RESOURCE_WORD1_N& texUnitWord1, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N& texUnitWord4);
@@ -535,25 +531,6 @@ namespace LatteDecompiler
 			decompilerContext->output->resourceMappingVK.textureUnitBaseBindingPoint = -1;
 	}
 
-#ifdef ENABLE_METAL
-	void _initTextureBindingPointsMTL(LatteDecompilerShaderContext* decompilerContext)
-	{
-		decompilerContext->output->resourceMappingMTL.textureUnitBaseBindingPoint = decompilerContext->currentTextureBindingPointMTL;
-		sint32 relBindingPointIndex = 0;
-		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
-		{
-			if (!decompilerContext->output->textureUnitMask[i] || decompilerContext->shader->textureRenderTargetIndex[i] != 255)
-				continue;
-			decompilerContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] = decompilerContext->currentTextureBindingPointMTL;
-			decompilerContext->output->resourceMappingMTL.relBindingPointToRelTextureUnit[relBindingPointIndex] = i;
-			relBindingPointIndex++;
-			decompilerContext->output->resourceMappingMTL.textureUnitCount++;
-			decompilerContext->currentTextureBindingPointMTL++;
-		}
-		if (relBindingPointIndex==0)
-			decompilerContext->output->resourceMappingMTL.textureUnitBaseBindingPoint = -1;
-	}
-#endif
 
 	void _initHasUniformVarBlock(LatteDecompilerShaderContext* decompilerContext)
 	{
@@ -594,23 +571,6 @@ namespace LatteDecompiler
 		{
 			decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance and uf_streamoutBufferBase*
 		}
-#ifdef ENABLE_METAL
-		if (g_renderer->GetType() == RendererAPI::Metal)
-		{
-			if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch())
-			{
-				for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
-				{
-					if (decompilerContext->shader->textureRenderTargetIndex[t] != 255)
-						decompilerContext->hasUniformVarBlock = true; // framebufferFetchSize
-				}
-			}
-            bool usesGeometryShader = UseGeometryShader(*decompilerContext->contextRegistersNew, decompilerContext->options->usesGeometryShader);
-
-		    if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && usesGeometryShader)
-				decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance
-		}
-#endif
 	}
 
 	void _initUniformBindingPoints(LatteDecompilerShaderContext* decompilerContext)
@@ -1189,9 +1149,6 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		shaderContext->output->resourceMappingVK.setIndex = 2;
 	LatteDecompiler::_initTextureBindingPointsGL(shaderContext);
 	LatteDecompiler::_initTextureBindingPointsVK(shaderContext);
-#ifdef ENABLE_METAL
-	LatteDecompiler::_initTextureBindingPointsMTL(shaderContext);
-#endif
 	LatteDecompiler::_initUniformBindingPoints(shaderContext);
 	LatteDecompiler::_initAttributeBindingPoints(shaderContext);
 	shaderContext->output->resourceMappingMTL.verticesPerInstanceBinding = shaderContext->currentBufferBindingPointMTL++;

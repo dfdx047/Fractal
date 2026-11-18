@@ -4,10 +4,6 @@
 #include "HW/Latte/Core/LatteShader.h"
 #include "config/CemuConfig.h"
 
-#ifdef ENABLE_OPENGL
-#include "Common/GLInclude/GLInclude.h"
-#include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
-#endif
 
 void LatteDraw_handleSpecialState8_clearAsDepth()
 {
@@ -59,15 +55,6 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 
 		switch (g_renderer->GetType())
 		{
-#ifdef ENABLE_OPENGL
-		case RendererAPI::OpenGL:
-		{
-			//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
-			if (glClearTexSubImage)
-				glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
-			break;
-		}
-#endif
 		default:
 		{
 			if (view->baseTexture->isDepth)

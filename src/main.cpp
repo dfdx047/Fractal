@@ -69,32 +69,12 @@ void _putenvSafe(const char* c)
 
 void reconfigureGLDrivers()
 {
-#ifdef ENABLE_OPENGL
-	// reconfigure GL drivers to store
-	const fs::path nvCacheDir = ActiveSettings::GetCachePath("shaderCache/driver/nvidia/");
-
-	std::error_code err;
-	fs::create_directories(nvCacheDir, err);
-
-	std::string nvCacheDirEnvOption("__GL_SHADER_DISK_CACHE_PATH=");
-	nvCacheDirEnvOption.append(_pathToUtf8(nvCacheDir));
-
-#if BOOST_OS_WINDOWS
-	std::wstring tmpW = boost::nowide::widen(nvCacheDirEnvOption);
-	_wputenv(tmpW.c_str());
-#else
-    _putenvSafe(nvCacheDirEnvOption.c_str());
-#endif
-    _putenvSafe("__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1");
-#endif
 }
 
 void reconfigureVkDrivers()
 {
-#ifdef ENABLE_VULKAN
     _putenvSafe("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1");
     _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
-#endif
 }
 
 void WindowsInitCwd()
@@ -255,7 +235,7 @@ int main(int argc, char* argv[])
 int BreathOfTheWildChildProcessMain();
 int main(int argc, char *argv[])
 {
-#if BOOST_OS_LINUX && defined(ENABLE_VULKAN)
+#if BOOST_OS_LINUX
 	if (getenv("CEMU_DETECT_RADV") != nullptr)
 		return BreathOfTheWildChildProcessMain();
 #endif

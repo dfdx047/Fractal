@@ -73,13 +73,7 @@ enum GraphicAPI
 	COUNT
 };
 
-#if defined(ENABLE_VULKAN)
 constexpr GraphicAPI kDefaultGraphicsAPI = kVulkan;
-#elif defined(ENABLE_METAL)
-constexpr GraphicAPI kDefaultGraphicsAPI = kMetal;
-#elif defined(ENABLE_OPENGL)
-constexpr GraphicAPI kDefaultGraphicsAPI = kOpenGL;
-#endif
 
 enum AudioChannels
 {
@@ -464,9 +458,6 @@ struct CemuConfig
 	ConfigValue<bool> render_upside_down{ false };
 	ConfigValue<bool> async_compile{ true };
 	ConfigValue<bool> perf_log{ false }; // Fractal: per-session performance CSV (LattePerfLog)
-#ifdef ENABLE_METAL
-	ConfigValue<bool> force_mesh_shaders{ false };
-#endif
 
 	// Gamma
 	ConfigValue<bool> overrideAppGammaPreference{ false };
@@ -540,10 +531,6 @@ struct CemuConfig
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
 	ConfigValue<uint16> gdb_port{ 1337 };
-#ifdef ENABLE_METAL
-	ConfigValue<std::string> gpu_capture_dir{ "" };
-	ConfigValue<bool> framebuffer_fetch{ true };
-#endif
 
 	XMLConfigParser Load(XMLConfigParser& parser);
 	XMLConfigParser Save(XMLConfigParser& parser);
