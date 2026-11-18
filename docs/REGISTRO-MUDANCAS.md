@@ -48,6 +48,25 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 - `a0b305c5`: sem logic op em drivers que não têm o recurso `logicOp` (os drivers da Adreno e da Mali). Muda os pipelines
   com raster op diferente de COPY nesses drivers. Turnip e PanVK não mudam.
 
+### Afinidade de núcleos (ajustes de teste)
+
+- **Commit:** `2c2431f1`. Ajustes `cpu_mask_ppc` / `cpu_mask_ppc<N>`, `cpu_mask_latte` e `cpu_mask_jit` em
+  `perf/tuning.txt` (máscara decimal de CPUs). Desligados por padrão: sem o arquivo nada muda.
+- **POCO, AC III, driver da Mali, 150-290 s:**
+
+  | Variação | fps | CPU |
+  |---|---|---|
+  | padrão | 34,1 / 34,3 | 273% |
+  | recompilador nos núcleos de 2,2 GHz (3 variações) | 20,4-22,1 | ~400% |
+  | CPU emulada e GPU nos núcleos 4-7, recompilador livre | 34,3 | 270% |
+  | GPU no núcleo 7 | 34,4 | 273% |
+
+  Prender o recompilador nos núcleos pequenos faz mais código cair no interpretador. Fixar o resto não muda nada,
+  porque o Android já põe essas threads nos núcleos grandes. Conclusão: no POCO fica o padrão.
+- **RP5, Ninja Gaiden 3 (limitado a 60 fps):** CPU emulada e GPU nos núcleos 4-7 gastam 194% de CPU contra 223% no
+  padrão, no mesmo fps. CPU emulada em 3 núcleos (4-6) com a GPU no 7 cai para 23 fps.
+- **Em teste:** Spider-Man 2 no RP5 (limitado pela CPU) e AC IV no Odin 3, com consumo.
+
 ### Tentativas descartadas
 
 - **Espera ociosa do núcleo 1 sem travas**
