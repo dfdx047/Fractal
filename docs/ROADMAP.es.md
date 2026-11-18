@@ -4,19 +4,20 @@
 
 # Roadmap de Fractal
 
-Estado de la **v0.1-beta** (noviembre de 2026). Cada corrección en *Hecho* enlaza al commit que la hizo, y las cifras
-salen de las mediciones escritas en esos commits.
+Estado: **v0.2-beta (en preparación)**, noviembre de 2026; el [changelog](../CHANGELOG.md) (en inglés) lista los cambios
+de cada versión. Cada corrección en *Hecho* enlaza al commit que la hizo, y las cifras salen de las mediciones escritas
+en esos commits.
 
 ## De dónde viene Fractal
 
 - **Base:** el port de Android de Cemu hecho por SSimco (`android-port`, punto del fork `8759323e`, 2026-04-27).
 - **Cemu oficial incorporado:** los 220 commits de `main` de `cemu-project/Cemu` hasta `3b103161` (2026-11-04), en `7c02ce75`.
-- **Trabajo de Fractal:** unos 160 commits desde 2026-11-08: interfaz, drivers, entrada, renderizador, recompilador,
-  correcciones de juegos y herramientas de depuración.
+- **Trabajo de Fractal:** unos 240 commits desde 2026-11-08: interfaz, drivers, entrada, renderizador, recompilador,
+  código ARM/NEON, correcciones de juegos y herramientas de depuración.
 
-Dispositivos de prueba: **Retroid Pocket 5** (Snapdragon 865, Adreno 650), **Anbernic RG Cube** (Unisoc T820, Mali-G57
-MC4), **Xiaomi Mi A3** (Snapdragon 665, Adreno 610), y una build de PC del mismo código usada para comparar con el Cemu
-oficial.
+Dispositivos de prueba: **Retroid Pocket 5** (Snapdragon 865, Adreno 650), **POCO X6 Pro** (Dimensity 8300 Ultra,
+Mali-G615 MC6) y **Xiaomi Mi A3** (Snapdragon 665, Adreno 610). Los resultados anteriores también vienen de la **Anbernic
+RG Cube** (Unisoc T820, Mali-G57 MC4), que sigue como referencia para dispositivos Mali más débiles.
 
 ---
 
@@ -41,6 +42,17 @@ Estos bugs están en código que Fractal comparte con la versión de PC de Cemu,
 | Need for Speed: Most Wanted U | Chasquidos y crujidos en el sonido del motor al acelerar | `AXDecodeAdpcmData` implementado (faltaba), historial del biquad con precisión completa, contexto de bucle de ADPCM, desbordamiento del filtro paso bajo | [`44cdd26b`](https://github.com/dfdx047/Fractal/commit/44cdd26b) |
 | Todos los juegos | Los pipelines precompilados al iniciar se armaban con el estado de la GPU de ese momento, así que la caché del driver nunca coincidía y se compilaban de nuevo durante el juego. El Cemu oficial tiene el mismo bug | Estado del pipeline armado a partir de los registros pasados al compilador | [`69ac8320`](https://github.com/dfdx047/Fractal/commit/69ac8320) |
 | Todos los juegos | Caché de buffers: un uniform buffer con registro de tamaño `0xFFFFFFFF` se volvía un nodo de tamaño cero que corrompía el árbol de rangos | Tamaño comprobado | [`2eef8ff5`](https://github.com/dfdx047/Fractal/commit/2eef8ff5) |
+| Super Smash Bros. for Wii U | Se congelaba al cargar un escenario en la RP5: un hilo de prioridad baja tenía el mutex que esperaba el cargador mientras un hilo de prioridad mayor ocupaba el núcleo, así que el dueño no volvía a ejecutarse. Cemu no tenía herencia de prioridad en `OSMutex` | `OSLockMutex` presta la prioridad del que espera al dueño (y a la cadena de dueños), `OSUnlockMutex` y `OSWaitCond` la devuelven, como en Cafe OS | [`5568a685`](https://github.com/dfdx047/Fractal/commit/5568a685) |
+| Splinter Cell: Blacklist | Se cerraba a los 27 s de juego: el destino de una copia a una superficie 1D (512x1 R32F) se buscaba con una vista 2D, que la caché de texturas rechaza | Destinos de copia 1D y 1D-array creados como 2D y 2D-array, como los de cubemap | [`dd40e27e`](https://github.com/dfdx047/Fractal/commit/dd40e27e) |
+| Splinter Cell: Blacklist | Limitado a 20 fps en todos los dispositivos y, en la RP5, parado en la pantalla de carga de la misión: el resultado de las occlusion queries solo llegaba a la memoria del juego en el vsync virtual (o cada 8 queries), y el juego espera 3 queries por cuadro | El bucle ocioso del procesador de comandos termina las queries pendientes en cuanto el renderizador las tiene. 30 fps (el límite del juego) en el POCO y la RP5, y la RP5 entra al juego | [`1557a268`](https://github.com/dfdx047/Fractal/commit/1557a268) |
+| Splinter Cell: Blacklist | `OSGetMapVirtAddrRange` y `OSGetDataPhysAddrRange` no existían, así que el juego leía lo que hubiera en sus variables de salida | Devuelven el rango de `OSAllocVirtAddr` y la MEM2 | [`ad5d1dc1`](https://github.com/dfdx047/Fractal/commit/ad5d1dc1) |
+| Batman: Arkham City | Se congelaba para siempre tras New Game ("Saving...") en todos los dispositivos: las occlusion queries de GX2 que terminaban sin ninguna query del host en marcha nunca terminaban | Sin nada en curso y sin query del host activa, todo evento de query emitido hasta ahí cuenta como terminado; se tratan las queries terminadas dos veces o reiniciadas pronto | [`e5dc06a1`](https://github.com/dfdx047/Fractal/commit/e5dc06a1) |
+| The Legend of Zelda: Breath of the Wild | Se cerraba al cargar una caché de shaders de la comunidad (issue #3 en GitHub): los fetch shaders con una cláusula de 5-8 o 13-16 fetches iban al parser antiguo. Cemu upstream tiene la misma comprobación | Máscara corregida; los 5981 vertex shaders de esa caché siguen el camino de CF | [`42a2fbd7`](https://github.com/dfdx047/Fractal/commit/42a2fbd7) |
+| LEGO Batman 2: DC Super Heroes | Parpadeo negro cada dos cuadros en todas las GPUs: el juego hace dos swaps por cuadro y copia a la TV una sola vez, y el segundo swap presentaba una imagen negra | Una vez presentada una imagen del juego, un swap sin copia no presenta nada, como el scan buffer de la consola | [`de5d2869`](https://github.com/dfdx047/Fractal/commit/de5d2869) |
+| Teslagrad | Se detenía (SIGTRAP) al guardar: `SetEndOfFile` en Unix/Android era un esbozo vacío, también en upstream | El archivo se corta en la posición actual | [`8daaafec`](https://github.com/dfdx047/Fractal/commit/8daaafec) |
+| Disney Infinity 3.0 | Se detenía en `getsockname` con un socket que el emulador no conoce | Devuelve -1 con `EINVAL`, o el error del host | [`6b27c9ae`](https://github.com/dfdx047/Fractal/commit/6b27c9ae) |
+| Disney Infinity 3.0, Cars 3 | Se detenía cuando el heap de 164 MB de la caché de buffers se llenaba de rangos de streamout | Como último recurso se descartan los rangos de streamout sin uso durante 2 cuadros (POCO 3 de 3 y RP5 sin cierres); la asignación solo se repite tras un fallo | [`146fdb6e`](https://github.com/dfdx047/Fractal/commit/146fdb6e), [`eca58396`](https://github.com/dfdx047/Fractal/commit/eca58396) |
+| ZombiU (EE. UU.) | Pantalla negra al iniciar con la actualización v32, también en Cemu para PC. La wiki de Cemu dice que se quite la actualización, lo que un .wua no permite | El juego inicia sin esa actualización (queda en el log); intro y juego en el POCO | [`b6cf7c8b`](https://github.com/dfdx047/Fractal/commit/b6cf7c8b) |
 
 También en código compartido: el recompilador ahora maneja `psq_lx`/`psq_stx` y sus formas con update, que el Cemu
 oficial envía al intérprete ([`9107127b`](https://github.com/dfdx047/Fractal/commit/9107127b); en The Amazing Spider-Man 2
@@ -74,6 +86,29 @@ y la cubierta del barco. Todavía no identificamos qué cambio marca la diferenc
 | Mario Kart 8 | Cierre (estado del mezclador de sonido) | Reinicio de `snd_user` traído del Cemu oficial antes del merge completo | [`c62e6977`](https://github.com/dfdx047/Fractal/commit/c62e6977) |
 | Juegos con diálogo de error | Se quedaban atascados en las portátiles: los botones del diálogo de error no recibían foco sin ratón | A y B cierran el diálogo | [`5879e1f5`](https://github.com/dfdx047/Fractal/commit/5879e1f5) |
 | Todos los juegos | La configuración y la lista de juegos quedaban en ceros tras reiniciar poco después de guardar | Los archivos se sincronizan con el almacenamiento antes de reemplazar los antiguos | [`9db92543`](https://github.com/dfdx047/Fractal/commit/9db92543) |
+| Todos los juegos en PanVK | El PanVK de faux123 (Mali-G615) cerraba todos los juegos en su primer cuadro: anuncia `VK_KHR_present_wait`, que el WSI de Mesa en Android no implementa | `present_wait` desactivado en PanVK; Twilight Princess HD funciona en su límite de 30 fps | [`45be70a4`](https://github.com/dfdx047/Fractal/commit/45be70a4) |
+| Pikmin 3 | El driver de Qualcomm se cerraba al crear pipelines de shaders que leen y escriben GPRs por índice | En Qualcomm esos shaders usan variables de GPR separadas: lectura con una cadena de selección, escritura con un switch | [`ab851c1a`](https://github.com/dfdx047/Fractal/commit/ab851c1a) |
+| Yoshi's Woolly World | Driver de Mali: sin Yoshi ni los enemigos. El streamout se escribía con stores en storage buffer desde el vertex shader, que el driver no admite | Streamout con `VK_EXT_transform_feedback` en drivers sin stores en el pipeline de vértices | [`95904874`](https://github.com/dfdx047/Fractal/commit/95904874) |
+| Yoshi's Woolly World (cualquier juego con texturas BC4/BC5 SNORM en Mali) | Manchas negras sobre la lana: los normal maps BC5 SNORM se decodificaban en la CPU como bytes sin signo, BC4 SNORM como UNORM | Se guardan como bytes en complemento a dos, extremos SNORM bien asignados | [`95904874`](https://github.com/dfdx047/Fractal/commit/95904874) |
+| Yoshi's Woolly World | Turnip T30 colgaba la GPU de la RP5 en el Mundo 1-1 | Perfil por defecto: driver del sistema | [`5c8f856d`](https://github.com/dfdx047/Fractal/commit/5c8f856d) |
+| Super Smash Bros. for Wii U | Turnip (T19 y T30) reiniciaba la RP5 al final de 4 de 4 combates | Perfil por defecto: driver del sistema (RP5 42,6 fps, casi lo que daba Turnip; POCO 55 fps contra 37 en PanVK) | [`5568a685`](https://github.com/dfdx047/Fractal/commit/5568a685), [`614d2531`](https://github.com/dfdx047/Fractal/commit/614d2531) |
+| Kirby and the Rainbow Curse | Turnip en modo de memoria del sistema reiniciaba la RP5 al entrar en Green Valley 1-1 en 4 de 5 ejecuciones | Perfil por defecto: driver del sistema (60,0 fps en la RP5), Turnip sin sysmem | [`803fed48`](https://github.com/dfdx047/Fractal/commit/803fed48) |
+| Sonic Lost World | SIGBUS justo después de la pantalla de título: `stwcx.` en una dirección impar se volvía `CASAL`, que exige alineación de 4 bytes en ARM64 | Las direcciones no alineadas usan una comparación y escritura normales, en el recompilador y el intérprete | [`70eb6796`](https://github.com/dfdx047/Fractal/commit/70eb6796) |
+| Sonic Lost World, Rayman Legends | Multi-core: Sonic se cierra o se cuelga al saltar el video inicial, Rayman se cuelga en la pantalla de carga (POCO: 4 de 4 y 3 de 4 ejecuciones) | Perfiles por defecto: recompilador single-core. Rayman depende de un solo hilo y no pierde nada (RP5 17,3 contra 17,0 fps) | [`fdbc093c`](https://github.com/dfdx047/Fractal/commit/fdbc093c) |
+| Rayman Legends | Los drivers Mesa dejan la GPU al 99 % en el primer nivel: Turnip 17 fps contra 59 en el driver de la Adreno 650, PanVK 18 contra 29,6 en el driver de la Mali-G615 | Perfil por defecto: driver del sistema | [`1f6476e3`](https://github.com/dfdx047/Fractal/commit/1f6476e3) |
+| Sonic Lost World | PanVK reinició el POCO dos veces de dos | Perfil por defecto: driver del sistema (48 fps en el driver de la Mali-G615; 53 en la RP5, igual que Turnip) | [`122d88bb`](https://github.com/dfdx047/Fractal/commit/122d88bb) |
+| Paper Mario: Color Splash | Puntitos de colores sobre la imagen en Turnip y PanVK: un pase muestrea el attachment de color en el que dibuja, lo que es indefinido incluso con `VK_EXT_attachment_feedback_loop_layout` | El draw muestrea una copia hecha antes, en todos los drivers. Misma velocidad en el POCO (30,1 fps, límite 30) | [`70eb6796`](https://github.com/dfdx047/Fractal/commit/70eb6796) |
+| Monster Hunter 3 Ultimate | Se cerraba (o se congelaba) a los 245 s de una partida nueva, al terminar el video inicial: el cargador del juego dice que un archivo está listo mientras la petición de reabrirlo sigue pendiente. En single-core se cerraba siempre en la RP5 y el POCO | Corrección del juego: "listo" también exige que no haya comando pendiente. 6/6 ejecuciones llegan a la aldea | [`dd4aa043`](https://github.com/dfdx047/Fractal/commit/dd4aa043) |
+| New Super Mario Bros. U | Se cerraba a los 57 s del arranque en una CPU lenta (Mi A3, 6/6 ejecuciones): la cola de dibujo de las cabezas Mii se recorría antes de que otro hilo pusiera el modelo | Corrección del juego que salta solo la entrada sin modelo (el paquete "Title Screen Crash Fix" de la comunidad salta la cola entera). Mi A3: 2/2 ejecuciones llegan al video inicial | [`ff719783`](https://github.com/dfdx047/Fractal/commit/ff719783) |
+| Resident Evil Revelations | Se cerraba en Mali (driver del sistema y PanVK) justo después de la intro: el render target A2_B10_G10_R10 no tenía formato Vulkan | Asignado a `A2B10G10R10_UNORM_PACK32` | [`71f3a05a`](https://github.com/dfdx047/Fractal/commit/71f3a05a) |
+| The Legend of Zelda: Twilight Princess HD | Minimapa negro con el driver de Qualcomm: el geometry shader de la emulación de rects no declaraba el mismo `gl_PerVertex` que los vertex shaders | El mismo bloque declarado en las dos etapas | [`a95f1b41`](https://github.com/dfdx047/Fractal/commit/a95f1b41) |
+| Cars 3, Ninja Gaiden 3, Disney Infinity 3.0 | Draws omitidos con el driver de Qualcomm (Cars 3: 25 pipelines, Ninja Gaiden 3: 24, Disney Infinity 3.0: 2): el geometry shader de rects dejaba entradas del pixel shader sin escribir | El geometry shader escribe ceros en ellas. Cars 3: 0 pipelines fallidos | [`eca58396`](https://github.com/dfdx047/Fractal/commit/eca58396) |
+| FIFA 13 | Turnip T19 en modo de memoria del sistema cerraba el juego 8 s después de iniciar (5 de 5 ejecuciones en la RP5) | Perfil por defecto: Turnip sin sysmem (T19 56,5 fps) | [`8d168fa9`](https://github.com/dfdx047/Fractal/commit/8d168fa9) |
+| Call of Duty: Ghosts | Se cerraba cuando el juego se reinicia a sí mismo en su primer arranque (POCO): Android no tenía implementación de sistema para reiniciar y salir del título | El renderizador se vuelve a crear sobre las mismas superficies; la salida queda en el log | [`e2030e99`](https://github.com/dfdx047/Fractal/commit/e2030e99) |
+| Hot Wheels: World's Best Driver | Se congelaba en una carga (RP5 1 ejecución de 3): dos carreras en el handshake del hilo de renderizado del propio juego, facilitadas por hilos del host interrumpidos | Corrección del juego para las dos. RP5 8 de 8 y POCO 5 de 5 ejecuciones sin congelarse | [`dfde2b64`](https://github.com/dfdx047/Fractal/commit/dfde2b64) |
+| Teslagrad | 770 funciones en el intérprete y el hilo del recompilador al 99 % en la Adreno 610 | Más instrucciones recompiladas y funciones enormes traducidas en ventanas (ver la sección del recompilador): 1 % low 3,7 → 10,3 fps en el Mi A3, luego 0 funciones en el intérprete | [`66f59e89`](https://github.com/dfdx047/Fractal/commit/66f59e89), [`85b29bd9`](https://github.com/dfdx047/Fractal/commit/85b29bd9) |
+| Todos los juegos | Los ajustes cambiados en el menú del juego se sobrescribían con la copia antigua de la biblioteca | Cada guardado de la biblioteca relee antes el archivo si cambió en el disco | [`e91a7121`](https://github.com/dfdx047/Fractal/commit/e91a7121) |
+| Todos los juegos | La app se cerraba al iniciar en ROMs personalizadas que niegan `Android/data` (issue #1 en GitHub) | Los errores de carpeta van al log en vez de cerrar la app; la carpeta por defecto pasa a la carpeta privada de la app | [`42a2fbd7`](https://github.com/dfdx047/Fractal/commit/42a2fbd7), [`5f607b21`](https://github.com/dfdx047/Fractal/commit/5f607b21) |
 
 ### Renderizador (Vulkan) para GPUs móviles por bloques
 
@@ -99,6 +134,16 @@ trabajo evita cortar passes.
 - Pipelines compilados en 1-2 hilos en Android en lugar de hasta 7, lo que redujo los tirones con caché fría
   ([`9893cf72`](https://github.com/dfdx047/Fractal/commit/9893cf72)).
 - La swapchain elige un composite alpha compatible (Mesa PanVK) ([`c1f4cd8e`](https://github.com/dfdx047/Fractal/commit/c1f4cd8e)).
+- Un draw que muestrea su propio attachment de color lee una copia en todos los drivers, también donde existe
+  `VK_EXT_attachment_feedback_loop_layout` ([`70eb6796`](https://github.com/dfdx047/Fractal/commit/70eb6796)).
+- Streamout con `VK_EXT_transform_feedback` en drivers sin stores en el pipeline de vértices (driver de Mali)
+  ([`95904874`](https://github.com/dfdx047/Fractal/commit/95904874)).
+- El resultado de las occlusion queries llega al juego con la GPU ociosa; las queries que terminan sin query del host en
+  marcha se completan ([`1557a268`](https://github.com/dfdx047/Fractal/commit/1557a268), [`e5dc06a1`](https://github.com/dfdx047/Fractal/commit/e5dc06a1)).
+- Un swap sin nada copiado a la pantalla mantiene la última imagen ([`de5d2869`](https://github.com/dfdx047/Fractal/commit/de5d2869)).
+- Caché de buffers: los rangos de streamout se descartan como último recurso cuando el heap se llena
+  ([`146fdb6e`](https://github.com/dfdx047/Fractal/commit/146fdb6e), [`eca58396`](https://github.com/dfdx047/Fractal/commit/eca58396)).
+- Sin `present_wait` en PanVK ([`45be70a4`](https://github.com/dfdx047/Fractal/commit/45be70a4)); render targets `A2_B10_G10_R10` asignados ([`71f3a05a`](https://github.com/dfdx047/Fractal/commit/71f3a05a)).
 
 ### Recompilador PowerPC → ARM64
 
@@ -109,6 +154,23 @@ trabajo evita cortar passes.
   `eieio`, `dcbi` ([`9107127b`](https://github.com/dfdx047/Fractal/commit/9107127b)) ya no recurren al intérprete.
 - Las funciones enormes se mantienen dentro del alcance de salto de ARM64 ([`a26051bf`](https://github.com/dfdx047/Fractal/commit/a26051bf)).
 - Flush-to-zero realmente activado en Android ([`b385304f`](https://github.com/dfdx047/Fractal/commit/b385304f)).
+- `stwcx.` en una dirección no alineada ([`70eb6796`](https://github.com/dfdx047/Fractal/commit/70eb6796)).
+- Multiplicación y suma fusionadas (`fmadd`/`fmsub`/`fnmsub` y sus formas single) como en Espresso y el intérprete;
+  antes, `a*c - round(a*c)` daba cero solo en el código recompilado ([`fec3837f`](https://github.com/dfdx047/Fractal/commit/fec3837f)).
+- `addo`/`subfo`/`addco`/`subfco`, `mfxer`/`mtxer`, `fcmpo`, saltos al estilo `bdnzf` y saltos condicionales lejanos;
+  una función contigua enorme se traduce en ventanas (en Teslagrad un switch de 955 KB se traducía 22 veces)
+  ([`66f59e89`](https://github.com/dfdx047/Fractal/commit/66f59e89)).
+- `subfme`, `divwo`/`divwuo` y `bcl 20`: Disney Infinity 2.0 145 → 0 y Teslagrad 157 → 0 funciones en el intérprete
+  ([`85b29bd9`](https://github.com/dfdx047/Fractal/commit/85b29bd9)).
+
+### Extensiones ARMv8 y NEON
+
+- Extensiones opcionales de ARMv8 (AES, PMULL, CRC32, atómicos LSE, FP16, dot product) detectadas en tiempo de
+  ejecución; la build sigue siendo ARMv8.0-A para cualquier teléfono arm64-v8a ([`b1078675`](https://github.com/dfdx047/Fractal/commit/b1078675)).
+- AES-128 con la Crypto Extension al leer discos cifrados ([`852801bb`](https://github.com/dfdx047/Fractal/commit/852801bb)), instrucciones CRC32 al cargar RPX/RPL
+  ([`64efc3e5`](https://github.com/dfdx047/Fractal/commit/64efc3e5)), máximo del index buffer con NEON ([`bd6af3dc`](https://github.com/dfdx047/Fractal/commit/bd6af3dc)) y decodificación BC1-BC5 con una paleta por
+  bloque y consultas de tabla NEON para GPUs sin BCn ([`c4e6b0aa`](https://github.com/dfdx047/Fractal/commit/c4e6b0aa)). Cifras en *Mejoras medidas*.
+- `tools/neon_tests` compara cada camino NEON con el código escalar bit a bit ([`852801bb`](https://github.com/dfdx047/Fractal/commit/852801bb)).
 
 ### Decompilador de shaders
 
@@ -117,6 +179,11 @@ trabajo evita cortar passes.
 - Reglas de NaN del R600 para min/max/clamp en Adreno ([`f8dbb223`](https://github.com/dfdx047/Fractal/commit/f8dbb223)).
 - Vertex shaders de streamout independientes del pixel shader enlazado, caché de SPIR-V por código fuente para shaders
   grandes ([`9b6ee09b`](https://github.com/dfdx047/Fractal/commit/9b6ee09b)).
+- Lecturas y escrituras de GPR por índice sin el array de GPRs en Qualcomm ([`ab851c1a`](https://github.com/dfdx047/Fractal/commit/ab851c1a)).
+- Salidas de transform feedback para el streamout ([`95904874`](https://github.com/dfdx047/Fractal/commit/95904874)).
+- Geometry shader de la emulación de rects: el mismo `gl_PerVertex` que los vertex shaders, ceros en las entradas del
+  pixel shader ([`a95f1b41`](https://github.com/dfdx047/Fractal/commit/a95f1b41), [`eca58396`](https://github.com/dfdx047/Fractal/commit/eca58396)).
+- Se detectan los fetch shaders con una cláusula de 5-8 o 13-16 fetches ([`42a2fbd7`](https://github.com/dfdx047/Fractal/commit/42a2fbd7)).
 
 ### Sistema y audio
 
@@ -124,6 +191,12 @@ trabajo evita cortar passes.
 - El núcleo principal y el hilo de la GPU duermen en lugar de girar cuando están ociosos; el núcleo principal duerme con
   el juego en pausa ([`ff38f5b4`](https://github.com/dfdx047/Fractal/commit/ff38f5b4), [`bf0944a4`](https://github.com/dfdx047/Fractal/commit/bf0944a4)).
 - Lectura de los argumentos de `GX2Init` ([`f8dbb223`](https://github.com/dfdx047/Fractal/commit/f8dbb223)).
+- Herencia de prioridad en `OSMutex` ([`5568a685`](https://github.com/dfdx047/Fractal/commit/5568a685)); `OSGetMapVirtAddrRange` y `OSGetDataPhysAddrRange`
+  ([`ad5d1dc1`](https://github.com/dfdx047/Fractal/commit/ad5d1dc1)); recorte de archivos en Android ([`8daaafec`](https://github.com/dfdx047/Fractal/commit/8daaafec)); errores de `getsockname` ([`6b27c9ae`](https://github.com/dfdx047/Fractal/commit/6b27c9ae)).
+- Reiniciar y salir del título en Android ([`e2030e99`](https://github.com/dfdx047/Fractal/commit/e2030e99)); un juego inicia sin una actualización que se sabe que impide
+  la carga ([`b6cf7c8b`](https://github.com/dfdx047/Fractal/commit/b6cf7c8b)).
+- Correcciones de juegos en una tabla de patrones exactos del código del juego (Ninja Gaiden 3, Monster Hunter 3
+  Ultimate, New Super Mario Bros. U, Hot Wheels) ([`dd4aa043`](https://github.com/dfdx047/Fractal/commit/dd4aa043), [`ff719783`](https://github.com/dfdx047/Fractal/commit/ff719783), [`dfde2b64`](https://github.com/dfdx047/Fractal/commit/dfde2b64)).
 
 ### Interfaz
 
@@ -148,6 +221,20 @@ trabajo evita cortar passes.
   pantalla del GamePad con toque; escala y tamaño propios en el menú del juego; elecciones guardadas entre juegos (basado
   en la rama `android-port-dual` de SapphireRhodonite) ([`f29f2800`](https://github.com/dfdx047/Fractal/commit/f29f2800)).
 - El botón atrás de las portátiles cuyo mando lo envía (AYN Odin 3) abre el menú del juego ([`026b580a`](https://github.com/dfdx047/Fractal/commit/026b580a)).
+- **HUD de rendimiento** con el aspecto de cada tema: FPS, tiempo de cuadro, uso de CPU y GPU, temperaturas, RAM,
+  consumo y batería, con elementos, tamaño, opacidad, disposición y posición en los ajustes y en el menú del juego;
+  portado del HUD de Winlator-Ludashi de StevenMXZ (GPL-3.0); uso de la GPU con los timestamps de los command buffers
+  ([`bc5372e2`](https://github.com/dfdx047/Fractal/commit/bc5372e2), [`b558e01a`](https://github.com/dfdx047/Fractal/commit/b558e01a), [`378222ec`](https://github.com/dfdx047/Fractal/commit/378222ec)).
+- Paquetes gráficos y trucos en el menú del juego, aplicados al juego en marcha (issue #5 en GitHub) ([`c6522627`](https://github.com/dfdx047/Fractal/commit/c6522627));
+  los ajustes del juego en el menú del juego con **Reiniciar juego** ([`98364ff2`](https://github.com/dfdx047/Fractal/commit/98364ff2)).
+- Cachés de shaders de la comunidad: descarga por juego y envío anónimo, revisado antes de incluirse
+  ([`63968db1`](https://github.com/dfdx047/Fractal/commit/63968db1), [`c75e10c7`](https://github.com/dfdx047/Fractal/commit/c75e10c7)).
+- Carpeta de datos en una carpeta elegida por el usuario (almacenamiento interno o tarjeta SD); instalar mods desde un
+  .zip o una carpeta ([`5f607b21`](https://github.com/dfdx047/Fractal/commit/5f607b21)).
+- Una resolución menor ofrecida una vez cuando un juego va muy por debajo de la velocidad completa ([`08c67298`](https://github.com/dfdx047/Fractal/commit/08c67298)).
+- Música del menú por tema con un bucle sin cortes, sonidos del menú, y música y efectos propios del usuario
+  ([`98364ff2`](https://github.com/dfdx047/Fractal/commit/98364ff2), [`f1d24be9`](https://github.com/dfdx047/Fractal/commit/f1d24be9), [`c8e0da47`](https://github.com/dfdx047/Fractal/commit/c8e0da47)).
+- Los botones de los diálogos reparten el ancho o se apilan ([`af271be2`](https://github.com/dfdx047/Fractal/commit/af271be2)).
 
 ### Drivers de GPU
 
@@ -156,6 +243,11 @@ trabajo evita cortar passes.
   vuelta automática al driver del sistema ([`7ce49626`](https://github.com/dfdx047/Fractal/commit/7ce49626),
   [`9e8cf0c3`](https://github.com/dfdx047/Fractal/commit/9e8cf0c3)); página por desarrollador con el Turnip de MrPurple666
   primero, drivers y paquetes gráficos en la configuración inicial ([`0386ec86`](https://github.com/dfdx047/Fractal/commit/0386ec86)).
+- GPUs Samsung Xclipse detectadas, con drivers RADV personalizados de cinco fuentes; aún sin probar en un dispositivo
+  Xclipse ([`8da0d804`](https://github.com/dfdx047/Fractal/commit/8da0d804)).
+- Paquete universal de PanVK de faux123 para Mali ([`45be70a4`](https://github.com/dfdx047/Fractal/commit/45be70a4)).
+- Los perfiles por defecto de los juegos eligen el driver que no se cierra o es más rápido (Smash, Yoshi's Woolly World,
+  Kirby and the Rainbow Curse, Rayman Legends, Sonic Lost World, FIFA 13; ver la tabla de arriba).
 
 ### Entrada
 
@@ -166,6 +258,8 @@ trabajo evita cortar passes.
   [`e1698c63`](https://github.com/dfdx047/Fractal/commit/e1698c63)); HOME en el botón Mode/Guide
   ([`b343cab3`](https://github.com/dfdx047/Fractal/commit/b343cab3)); atajos ([`571c9d87`](https://github.com/dfdx047/Fractal/commit/571c9d87)).
 - Los toques rápidos en los botones en pantalla ya no se pierden ([`8929b786`](https://github.com/dfdx047/Fractal/commit/8929b786)).
+- Tipo de mando por juego (GamePad / Pro / Classic / Wiimote), un aviso único cuando el juego puede ignorar la
+  configuración, opción de distribución de botones de Nintendo ([`5e6c4e42`](https://github.com/dfdx047/Fractal/commit/5e6c4e42)).
 
 ### Escalado
 
@@ -190,6 +284,11 @@ trabajo evita cortar passes.
   ([`c7923402`](https://github.com/dfdx047/Fractal/commit/c7923402), [`fcb9863e`](https://github.com/dfdx047/Fractal/commit/fcb9863e),
   [`f8dbb223`](https://github.com/dfdx047/Fractal/commit/f8dbb223)).
 - Registro de rendimiento, escenas de benchmark con guion y herramientas de profiling (`tools/perf`).
+- El informe de depuración se ofrece en el siguiente inicio tras un cierre (issue #2 en GitHub) ([`40d57923`](https://github.com/dfdx047/Fractal/commit/40d57923)).
+- Vigilancia de escrituras para el código recompilado (`watch_jit=1`) ([`e79e82bd`](https://github.com/dfdx047/Fractal/commit/e79e82bd)); espera de GPU separada para
+  copias de superficies lineales en el registro de rendimiento ([`52ff15de`](https://github.com/dfdx047/Fractal/commit/52ff15de)); toques en el GamePad y pulsaciones
+  contadas en cuadros en los guiones de entrada ([`6a78d980`](https://github.com/dfdx047/Fractal/commit/6a78d980), [`5568a685`](https://github.com/dfdx047/Fractal/commit/5568a685)); 73 escenas de benchmark nuevas.
+- `FRACTAL_TEST_BUILD=1` genera "Fractal Teste", que se instala junto a la app oficial ([`a4363e5f`](https://github.com/dfdx047/Fractal/commit/a4363e5f)).
 
 ### Mejoras medidas
 
@@ -206,11 +305,29 @@ condiciones cambian entre commits (driver, perfil de CPU), así que compara cada
 | Sincronización de `GX2DrawDone` por juego | RP5, Breath of the Wild | 9,4 → 11,1 fps | [`951eb1e7`](https://github.com/dfdx047/Fractal/commit/951eb1e7) |
 | 1-2 hilos de compilación de pipelines | Mi A3, SM3DW, caché fría | 17,0 s → 7,5 s en cuadros de más de 100 ms | [`9893cf72`](https://github.com/dfdx047/Fractal/commit/9893cf72) |
 | Los pipelines precompilados coinciden con la caché del driver | Watch Dogs | congelamiento de 38-68 s → 9 s al entrar al juego | [`69ac8320`](https://github.com/dfdx047/Fractal/commit/69ac8320) |
+| Resultado de las occlusion queries con la GPU ociosa | RP5 y POCO, Splinter Cell: Blacklist | 20 → 30 fps (límite del juego) | [`1557a268`](https://github.com/dfdx047/Fractal/commit/1557a268) |
+| Recompilador: formas con overflow, saltos lejanos, ventanas para funciones enormes | Mi A3, Teslagrad | 1 % low 3,7 → 10,3 fps; código host 118 → 39 MB | [`66f59e89`](https://github.com/dfdx047/Fractal/commit/66f59e89) |
+| Aviso de resolución (640x360) | Mi A3: Kirby and the Rainbow Curse / NSMBU / Captain Toad | 12 → 27 / 20 → 34 / 16 → 30 fps | [`08c67298`](https://github.com/dfdx047/Fractal/commit/08c67298) |
+| Driver del sistema en vez de Mesa en Rayman Legends | RP5 (Turnip) / POCO (PanVK) | 17 → 59 fps / 18 → 29,6 fps | [`1f6476e3`](https://github.com/dfdx047/Fractal/commit/1f6476e3) |
+| AES-128 con la Crypto Extension | POCO, sector de 32 KiB | 32 MB/s → 4,1 GB/s | [`852801bb`](https://github.com/dfdx047/Fractal/commit/852801bb) |
+| Instrucciones CRC32 | POCO | 1,2 → 13,6 GB/s | [`64efc3e5`](https://github.com/dfdx047/Fractal/commit/64efc3e5) |
+| Máximo del index buffer con NEON | POCO, 30000 índices | u16 51,5 → 4,3 µs, u32 35,6 → 8,4 µs | [`bd6af3dc`](https://github.com/dfdx047/Fractal/commit/bd6af3dc) |
+| Decodificación BCn con paleta, con NEON | POCO, 1024x1024 | BC1 4,0 → 1,5 ms, BC3 5,7 → 2,8, BC4 3,8 → 1,3, BC5 7,0 → 3,2 | [`c4e6b0aa`](https://github.com/dfdx047/Fractal/commit/c4e6b0aa) |
 
 ---
 
 ## En curso
 
+- **Solo Android/ARM:** se está quitando todo el código de PC/escritorio; Fractal ahora es un emulador solo para
+  Android/ARM.
+- **Limpieza de código y APK más pequeño:** limpieza general del código y reducción del tamaño del APK.
+- **Profiling de CPU en Mali:** midiendo dónde gasta tiempo la CPU en los juegos pesados en el POCO X6 Pro para guiar más
+  trabajo con NEON.
+- **Need for Speed: Most Wanted U en el POCO:** se investiga un cierre intermitente durante el juego.
+- **Splinter Cell: Blacklist:** en las misiones solo se dibujan el cielo y el suelo (la wiki de compatibilidad de Cemu
+  cita el mismo problema). Descartado por ahora: occlusion queries, la pirámide hi-Z y las consultas de mapeo de memoria.
+- **Assassin's Creed III en el POCO:** el terreno y las rocas cercanas salen azul oscuro liso; en multi-core el juego no
+  envía el draw del terreno, en single-core sí se dibuja.
 - **Watch Dogs en Turnip:** un fallo de página de la GPU en una escritura de streamout puede colgar la GPU tras unos
   25 minutos. El driver del sistema no está afectado.
 - **Watch Dogs sobreexpuesto en Android:** desde la sala de Maurice la exposición automática puede quedarse demasiado
@@ -233,16 +350,18 @@ condiciones cambian entre commits (driver, perfil de CPU), así que compara cada
 - **Need for Speed: Most Wanted U:** encontrar la causa raíz del follaje blanco (el paquete de la comunidad lo oculta).
 - **Xenoblade Chronicles X con el driver del sistema de Qualcomm:** personajes como siluetas blancas (bug del driver);
   por ahora usa Turnip.
-- **Mali en general:** la RG Cube, en su modo económico de CPU, es la referencia para dispositivos Mali más débiles.
+- **Mali en general:** el POCO X6 Pro (Mali-G615) es ahora dispositivo de prueba principal; la RG Cube, en su modo
+  económico de CPU, sigue como referencia para dispositivos Mali más débiles.
 
 ## Planeado
 
-- Mediciones con escena fija en la Odin 3 y en la AYN Thor, y pruebas en una Mali más nueva (Dimensity 8300 /
-  Mali-G615).
+- Mediciones con escena fija en la Odin 3 y en la AYN Thor.
+- Probar los drivers personalizados para Samsung Xclipse en un dispositivo Exynos.
 - Generación de fotogramas también en la pantalla del GamePad y un botón rápido para ella en el menú del juego.
 - Pruebas de compatibilidad en los principales juegos de Wii U y una lista pública de compatibilidad.
 - Un botón "marcar problema" dentro del juego que guarde una captura y una marca en el log para los reportes.
-- Streamout en drivers Mali sin stores en el pipeline de vértices (por ejemplo con un pase de compute).
+- Streamout en drivers Mali sin stores en el pipeline de vértices ni transform feedback (por ejemplo con un pase de
+  compute).
 - Funciones de GPU que faltan, encontradas en las pruebas: compute draw calls, alpha-to-mask (`GX2SetAlphaToMaskReg`),
   `GX2ExpandDepthBuffer` y `SQ_VTX_SEMANTIC_CLEAR`, que nunca se aplica.
 - Más rendimiento del lado de la CPU: Breath of the Wild y Mario Kart 8 en la RP5 están limitados por el núcleo PowerPC
