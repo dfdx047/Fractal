@@ -127,7 +127,6 @@ android {
                     "-DENABLE_VCPKG=ON",
                     "-DVCPKG_TARGET_ANDROID=ON",
                     "-DENABLE_SDL=OFF",
-                    "-DENABLE_WXWIDGETS=OFF",
                     "-DENABLE_OPENGL=OFF",
                     "-DENABLE_BLUEZ=OFF",
                     "-DBUNDLE_SPEEX=ON",

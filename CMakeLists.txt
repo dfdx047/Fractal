@@ -154,8 +154,6 @@ if (WIN32)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
-option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
-
 find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)
 find_package(pugixml REQUIRED)
@@ -240,10 +238,6 @@ if(UNIX AND NOT APPLE AND NOT ANDROID)
 		add_subdirectory(dependencies/gamemode EXCLUDE_FROM_ALL)
 		target_include_directories(gamemode INTERFACE ./dependencies/gamemode/lib)
 	endif()
-endif()
-
-if (ENABLE_WXWIDGETS)
-	find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core gl propgrid xrc)
 endif()
 
 if (ENABLE_CUBEB)
