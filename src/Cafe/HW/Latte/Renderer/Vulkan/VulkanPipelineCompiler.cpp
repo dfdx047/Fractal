@@ -707,7 +707,9 @@ void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister,
 		PerfLog::Event(fmt::format("logic_op_{:02x}", (uint32)logicOp),
 			fmt::format("pipeline with raster op {:02x}, driver logicOp feature {}", (uint32)logicOp, driverHasLogicOp ? "yes" : "no"));
 	}
-	if (logicOp == Latte::LATTE_CB_COLOR_CONTROL::E_LOGICOP::COPY)
+	// logicOpEnable without the logicOp feature is invalid usage, and what drivers then do is undefined (most Android
+	// drivers lack it): draw as COPY there
+	if (logicOp == Latte::LATTE_CB_COLOR_CONTROL::E_LOGICOP::COPY || !driverHasLogicOp)
 	{
 		colorBlending.logicOpEnable = VK_FALSE;
 		colorBlending.logicOp = VK_LOGIC_OP_COPY;
