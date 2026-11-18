@@ -11,6 +11,9 @@
 /*****************************************************************************/
 #include "aes128.h"
 #include "Common/cpu_features.h"
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 
 /*****************************************************************************/
 /* Defines:                                                                  */
@@ -792,6 +795,112 @@ ATTRIBUTE_AESNI void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key,
 	feedback = _mm_aesenclast_si128(feedback, ((__m128i*)expandedKey)[10]);
 	_mm_storeu_si128(&((__m128i*)output)[0], feedback);
 }
+#elif defined(__aarch64__)
+// ARMv8 Crypto Extension (AESE/AESD + AESMC/AESIMC), present on almost every arm64 phone but optional in ARMv8.0,
+// so it is only selected when the kernel reports HWCAP_AES. The round keys come from the same software KeyExpansion
+// AESE(s, k) = SubBytes(ShiftRows(s ^ k)), AESMC = MixColumns; AESD/AESIMC are the inverse operations
+
+ATTRIBUTE_ARM_AES static inline uint8x16_t ARMAES128_EncryptBlock(uint8x16_t s, const uint8x16_t* rk)
+{
+	s = vaesmcq_u8(vaeseq_u8(s, rk[0]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[1]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[2]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[3]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[4]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[5]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[6]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[7]));
+	s = vaesmcq_u8(vaeseq_u8(s, rk[8]));
+	s = vaeseq_u8(s, rk[9]);
+	return veorq_u8(s, rk[10]);
+}
+
+// decryption with the equivalent inverse cipher: dk[0] = rk[10], dk[1..9] = InvMixColumns(rk[9..1]), dk[10] = rk[0]
+ATTRIBUTE_ARM_AES static inline uint8x16_t ARMAES128_DecryptBlock(uint8x16_t s, const uint8x16_t* dk)
+{
+	s = vaesimcq_u8(vaesdq_u8(s, dk[0]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[1]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[2]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[3]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[4]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[5]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[6]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[7]));
+	s = vaesimcq_u8(vaesdq_u8(s, dk[8]));
+	s = vaesdq_u8(s, dk[9]);
+	return veorq_u8(s, dk[10]);
+}
+
+ATTRIBUTE_ARM_AES static void ARMAES128_KeyExpansionDecrypt(const uint8* key, uint8x16_t dk[11])
+{
+	aes128Ctx_t aesCtx;
+	KeyExpansion(&aesCtx, key);
+	dk[0] = vld1q_u8(aesCtx.RoundKey + 10 * 16);
+	for (sint32 i = 1; i < 10; i++)
+		dk[i] = vaesimcq_u8(vld1q_u8(aesCtx.RoundKey + (10 - i) * 16));
+	dk[10] = vld1q_u8(aesCtx.RoundKey);
+}
+
+ATTRIBUTE_ARM_AES void __armv8__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv)
+{
+	uint8x16_t dk[11];
+	ARMAES128_KeyExpansionDecrypt(key, dk);
+	uint8x16_t feedback = iv ? vld1q_u8(iv) : vdupq_n_u8(0);
+	// like the other implementations a trailing partial block is processed as a full block
+	uint32 numBlocks = (length + 15) / 16;
+	// CBC decryption has no dependency between blocks, so four of them are kept in flight to hide the AES latency
+	// all four inputs are loaded before anything is stored, which keeps in-place decryption (output == input) working
+	const bool canInterleave = output == input || output + numBlocks * 16 <= input || input + numBlocks * 16 <= output;
+	if (canInterleave)
+	{
+		while (numBlocks >= 4)
+		{
+			uint8x16_t in0 = vld1q_u8(input + 0);
+			uint8x16_t in1 = vld1q_u8(input + 16);
+			uint8x16_t in2 = vld1q_u8(input + 32);
+			uint8x16_t in3 = vld1q_u8(input + 48);
+			uint8x16_t s0 = in0, s1 = in1, s2 = in2, s3 = in3;
+			for (sint32 r = 0; r < 9; r++)
+			{
+				s0 = vaesimcq_u8(vaesdq_u8(s0, dk[r]));
+				s1 = vaesimcq_u8(vaesdq_u8(s1, dk[r]));
+				s2 = vaesimcq_u8(vaesdq_u8(s2, dk[r]));
+				s3 = vaesimcq_u8(vaesdq_u8(s3, dk[r]));
+			}
+			s0 = veorq_u8(vaesdq_u8(s0, dk[9]), dk[10]);
+			s1 = veorq_u8(vaesdq_u8(s1, dk[9]), dk[10]);
+			s2 = veorq_u8(vaesdq_u8(s2, dk[9]), dk[10]);
+			s3 = veorq_u8(vaesdq_u8(s3, dk[9]), dk[10]);
+			vst1q_u8(output + 0, veorq_u8(s0, feedback));
+			vst1q_u8(output + 16, veorq_u8(s1, in0));
+			vst1q_u8(output + 32, veorq_u8(s2, in1));
+			vst1q_u8(output + 48, veorq_u8(s3, in2));
+			feedback = in3;
+			input += 64;
+			output += 64;
+			numBlocks -= 4;
+		}
+	}
+	while (numBlocks)
+	{
+		uint8x16_t in = vld1q_u8(input);
+		vst1q_u8(output, veorq_u8(ARMAES128_DecryptBlock(in, dk), feedback));
+		feedback = in;
+		input += 16;
+		output += 16;
+		numBlocks--;
+	}
+}
+
+ATTRIBUTE_ARM_AES void __armv8__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
+{
+	aes128Ctx_t aesCtx;
+	KeyExpansion(&aesCtx, key);
+	uint8x16_t rk[11];
+	for (sint32 i = 0; i < 11; i++)
+		rk[i] = vld1q_u8(aesCtx.RoundKey + i * 16);
+	vst1q_u8(output, ARMAES128_EncryptBlock(vld1q_u8(input), rk));
+}
 #endif
 
 void(*AES128_ECB_encrypt)(uint8* input, const uint8* key, uint8* output);
@@ -848,6 +957,18 @@ void AES128_init()
 	else
 	{
 		// basic software implementation
+		AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
+		AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
+	}
+	#elif defined(__aarch64__)
+	if (g_CPUFeatures.arm64.aes)
+	{
+		// ARMv8 Crypto Extension
+		AES128_CBC_decrypt = __armv8__AES128_CBC_decrypt;
+		AES128_ECB_encrypt = __armv8__AES128_ECB_encrypt;
+	}
+	else
+	{
 		AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
 		AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
 	}
