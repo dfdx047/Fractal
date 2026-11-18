@@ -122,8 +122,14 @@ int Latte_ThreadEntry()
 	// fast_cores bit 1: keep the GPU command thread off the slowest CPU cluster
 	if (PerfLog::Tunable("fast_cores", 0) & 2)
 		cemuLog_log(LogType::Force, "LatteThread: pinned to {} fast CPUs", PinCurrentThreadToFastCores());
-	if (const uint64 mask = (uint64)PerfLog::Tunable("cpu_mask_latte", 0); mask && PinCurrentThreadToCpuMask(mask))
-		cemuLog_log(LogType::Force, "LatteThread: pinned to CPU mask {:#x}", mask);
+	// off the little cluster by default like the PPC core threads (big_cores=0 turns it off)
+	{
+		uint64 mask = (uint64)PerfLog::Tunable("cpu_mask_latte", 0);
+		if (mask == 0 && PerfLog::Tunable("big_cores", 1) != 0)
+			mask = GetBigCoreMask();
+		if (mask && PinCurrentThreadToCpuMask(mask))
+			cemuLog_log(LogType::Force, "LatteThread: pinned to CPU mask {:#x}", mask);
+	}
 	sint32 w,h;
 	WindowSystem::GetWindowPhysSize(w,h);
 

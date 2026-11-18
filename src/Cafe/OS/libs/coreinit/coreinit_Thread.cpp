@@ -1499,9 +1499,14 @@ namespace coreinit
 		// fast_cores bit 0: keep the PPC core threads off the slowest CPU cluster
 		if (PerfLog::Tunable("fast_cores", 0) & 1)
 			cemuLog_log(LogType::Force, "OSSched[core={}]: pinned to {} fast CPUs", __OSAssignedCoreIndex(), PinCurrentThreadToFastCores());
-		// cpu_mask_ppc / cpu_mask_ppc<N> (decimal bit mask of host CPUs): affinity experiments per emulated core
+		// cpu_mask_ppc / cpu_mask_ppc<N> (decimal bit mask of host CPUs): affinity experiments per emulated core. By default
+		// the emulated cores stay off the little cluster (big_cores=0 turns that off): the scheduler put them on the A55 of
+		// the Retroid Pocket 5 often enough that Spider-Man 2 ran at 34.8 fps with 263% CPU against 38.2 fps with 192% held
+		// on cpu 4-7; no change on the POCO X6 Pro, and nothing is pinned on CPUs without a little cluster (Odin 3)
 		{
-			const uint64 mask = (uint64)PerfLog::Tunable(fmt::format("cpu_mask_ppc{}", __OSAssignedCoreIndex()), PerfLog::Tunable("cpu_mask_ppc", 0));
+			uint64 mask = (uint64)PerfLog::Tunable(fmt::format("cpu_mask_ppc{}", __OSAssignedCoreIndex()), PerfLog::Tunable("cpu_mask_ppc", 0));
+			if (mask == 0 && PerfLog::Tunable("big_cores", 1) != 0)
+				mask = GetBigCoreMask();
 			if (mask && PinCurrentThreadToCpuMask(mask))
 				cemuLog_log(LogType::Force, "OSSched[core={}]: pinned to CPU mask {:#x}", __OSAssignedCoreIndex(), mask);
 		}

@@ -269,6 +269,41 @@ std::optional<std::vector<uint8>> zlibDecompress(const std::vector<uint8>& compr
 	return decompressed;
 }
 
+uint64 GetBigCoreMask()
+{
+	static const uint64 s_mask = []() -> uint64 {
+		std::vector<uint64> capacity;
+		bool fromFreq = false;
+		for (int cpu = 0; cpu < 64; cpu++)
+		{
+			uint64 value = 0;
+			std::ifstream c(fmt::format("/sys/devices/system/cpu/cpu{}/cpu_capacity", cpu));
+			if (!fromFreq && c && (c >> value))
+			{
+				capacity.emplace_back(value);
+				continue;
+			}
+			std::ifstream f(fmt::format("/sys/devices/system/cpu/cpu{}/cpufreq/cpuinfo_max_freq", cpu));
+			if (!f || !(f >> value))
+				break;
+			if (!fromFreq && !capacity.empty())
+				return 0; // capacity for some CPUs only: don't guess
+			fromFreq = true;
+			capacity.emplace_back(value);
+		}
+		if (capacity.size() < 2)
+			return 0;
+		const uint64 largest = *std::max_element(capacity.begin(), capacity.end());
+		uint64 mask = 0;
+		for (size_t cpu = 0; cpu < capacity.size(); cpu++)
+			if (capacity[cpu] * 4 >= largest * 3)
+				mask |= 1ull << cpu;
+		const uint64 all = capacity.size() >= 64 ? ~0ull : (1ull << capacity.size()) - 1;
+		return mask == all ? 0 : mask;
+	}();
+	return s_mask;
+}
+
 bool PinCurrentThreadToCpuMask(uint64 mask)
 {
 	if (mask == 0)

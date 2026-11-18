@@ -65,7 +65,22 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   porque o Android já põe essas threads nos núcleos grandes. Conclusão: no POCO fica o padrão.
 - **RP5, Ninja Gaiden 3 (limitado a 60 fps):** CPU emulada e GPU nos núcleos 4-7 gastam 194% de CPU contra 223% no
   padrão, no mesmo fps. CPU emulada em 3 núcleos (4-6) com a GPU no 7 cai para 23 fps.
-- **Em teste:** Spider-Man 2 no RP5 (limitado pela CPU) e AC IV no Odin 3, com consumo.
+- **RP5, Spider-Man 2 (limitado pela CPU, 450-590 s):** padrão 34,8 fps / 263% de CPU; CPU emulada e GPU nos núcleos
+  4-7: 38,2 / 192%; só a GPU no 7: 34,7 / 249%.
+
+### Núcleos grandes por padrão
+
+- **Commit:** `03b83590`. As threads dos núcleos emulados e a da GPU (LatteThread) evitam o cluster pequeno: núcleos com
+  menos de 75% do maior `cpu_capacity` (regra do ARMSX3). Sem cluster pequeno (8 Elite) nada é fixado. `big_cores=0` em
+  `perf/tuning.txt` desliga. O recompilador, o áudio e o resto continuam livres.
+- **Testado (build `2026-11-18_fractal-bigcores.apk`, A/B no mesmo run):**
+  - RP5 Spider-Man 2: 40,3 fps / 193% contra 34,9 / 262% com `big_cores=0`.
+  - Mi A3 Super Mario 3D World (T19): 22,2 nos dois.
+  - POCO: neutro (rodada 2 da afinidade). Odin 3: máscara 0, nada muda.
+  - Regressão RP5 13 jogos system + T19 com esta build (v02bc_rp5_*).
+- **Risco:** aparelho com só 2 núcleos grandes (ex.: alguns Snapdragon 6xx/7xx 2+6) põe 3 núcleos emulados e a GPU em 2
+  CPUs. Se aparecer queda nesses, o limite deve exigir pelo menos 4 núcleos grandes.
+- **Voltar atrás:** `big_cores=0`, ou reverter o commit.
 
 ### Tentativas descartadas
 

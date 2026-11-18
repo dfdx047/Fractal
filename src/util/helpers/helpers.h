@@ -218,6 +218,9 @@ void SetThreadName(const char* name);
 int PinCurrentThreadToFastCores();
 // pins the calling thread to the host CPUs in mask (bit n = cpu n); returns false if the mask is 0 or the call failed
 bool PinCurrentThreadToCpuMask(uint64 mask);
+// host CPUs with at least 75% of the largest cpu_capacity (cpuinfo_max_freq where the kernel has no capacity); 0 when
+// every CPU qualifies (no little cluster, e.g. Snapdragon 8 Elite) or the topology can't be read
+uint64 GetBigCoreMask();
 
 inline uint64 MakeU64(uint32 high, uint32 low)
 {

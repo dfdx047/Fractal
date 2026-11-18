@@ -65,6 +65,11 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   - BC1-BC5 texture decoding on the CPU (GPUs without BCn, such as Mali) through an 8 bit palette per block and NEON
     table lookups, bit exact with the old code: 1024x1024 BC1 4.0 → 1.5 ms, BC3 5.7 → 2.8, BC4 3.8 → 1.3, BC5 7.0 → 3.2
     (`c4e6b0aa`).
+- **Big cores:** the emulated CPU cores and the GPU command thread stay off the little cluster (CPUs below 75% of the
+  largest `cpu_capacity`); Android put them on the Cortex-A55 of the Snapdragon 865 often enough to cost a lot. Amazing
+  Spider-Man 2 on the Retroid Pocket 5: 34.9 → 40.3 fps with CPU use 262 → 193 %. No change on the POCO X6 Pro and the
+  Mi A3; nothing is pinned on CPUs without a little cluster (Snapdragon 8 Elite). `big_cores=0` in `perf/tuning.txt`
+  turns it off (`03b83590`).
 - **Recompiler:** `addo`/`subfo`/`addco`/`subfco`, `mfxer`/`mtxer`, `fcmpo`, `bdnzf`-style branches, conditional far
   branches, `subfme`, `divwo`/`divwuo` and `bcl 20` no longer send functions to the interpreter, and a huge contiguous
   function is translated in windows instead of whole for every new entry. Teslagrad on the Mi A3: host code 118 → 39 MB,
@@ -142,7 +147,15 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 ### Known issues
 
 - **The Binding of Isaac: Rebirth (USA):** runs (sound, no crash) with a black picture on every phone tested.
-- **FIFA 13:** sometimes crashes in the game's audio thread on the RP5 (3 of about 10 runs), with every driver.
+- **FIFA 13:** crashes in the game's audio thread 10-20 s after boot on the RP5 (4 of 6 runs), with every driver:
+  in multi-core the audio thread mixes before the output channels exist (single-core never gets past the black boot
+  screen). The pitch and the stadium are black on every GPU (Adreno, Mali, Turnip, PanVK); official Cemu shows a black
+  screen too (cemu-project/Cemu#1907).
+- **Mario Kart 8 on phones with 3-4 GB of RAM:** on the Mi A3 (3.6 GB) the race load ends the game: Android kills it for
+  memory on the device's driver, and Turnip T19 restarts the phone.
+- **Shader caches from another phone:** Watch Dogs on the AYN Odin 3 (Adreno 830) closed at boot with a pipeline cache
+  made on another device (the Turnip Gen8 and Qualcomm compilers crash on some of its pipelines); with its own cache it
+  plays (900 s, 45-60 fps).
 
 ### Tools
 
