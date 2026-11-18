@@ -34,12 +34,6 @@ IMLReg _GetFPRTemp(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0 + index, IMLRegFormat::F64);
 }
 
-IMLReg _GetFPRReg(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex, bool selectPS1)
-{
-	cemu_assert_debug(regIndex < 32);
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + (selectPS1 ? 1 : 0), IMLRegFormat::F64);
-}
-
 void PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
 {
 	ppcImlGenContext->emitInst().make_fpr_r(IMLOperation::OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegister);
@@ -275,12 +269,8 @@ bool PPCRecompilerImlGen_FDIV(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 // 2 single precision ops, default 3; 0 restores the old two-step code for comparisons)
 static bool _UseFusedMultiplyAdd(bool singlePrecision)
 {
-#if defined(__aarch64__)
 	static const uint32 s_fma = (uint32)PerfLog::Tunable("jit_fma", 3);
 	return (s_fma & (singlePrecision ? 2 : 1)) != 0;
-#else
-	return false;
-#endif
 }
 
 bool PPCRecompilerImlGen_FMADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)

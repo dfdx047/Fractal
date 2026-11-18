@@ -9,17 +9,8 @@
 #include "WindowSystem.h"
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#ifdef ENABLE_OPENGL
-#include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
-#endif
-#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
-#endif
-#ifdef ENABLE_METAL
-#include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
-#endif
 
 #include <imgui.h>
 #include "imgui/imgui_extension.h"
@@ -36,9 +27,6 @@
 #include <util/bootSound/BootSoundReader.h>
 #include <thread>
 
-#if BOOST_OS_WINDOWS
-#include <psapi.h>
-#endif
 
 #define SHADER_CACHE_COMPILE_QUEUE_SIZE		(32)
 
@@ -279,21 +267,9 @@ void LatteShaderCache_finish()
 {
 	switch (g_renderer->GetType())
 	{
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 		RendererShaderVk::ShaderCacheLoading_end();
 		return;
-#endif
-#ifdef ENABLE_OPENGL
-	case RendererAPI::OpenGL:
-		RendererShaderGL::ShaderCacheLoading_end();
-		return;
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		RendererShaderMtl::ShaderCacheLoading_end();
-		return;
-#endif
 	}
 }
 
@@ -361,11 +337,6 @@ void LatteShaderCache_Load()
 
 	const auto timeLoadStart = now_cached();
 	// remember current amount of committed memory
-#if BOOST_OS_WINDOWS
-	PROCESS_MEMORY_COUNTERS pmc1;
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc1, sizeof(PROCESS_MEMORY_COUNTERS));
-	LONGLONG totalMem1 = pmc1.PagefileUsage;
-#endif
 	// init shader parallel compile queue
 	LatteShaderCache_initCompileQueue();
 	// create directories
@@ -375,21 +346,9 @@ void LatteShaderCache_Load()
 	// initialize renderer specific caches
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 		RendererShaderVk::ShaderCacheLoading_begin(cacheTitleId);
 		break;
-#endif
-#ifdef ENABLE_OPENGL
-	case RendererAPI::OpenGL:
-		RendererShaderGL::ShaderCacheLoading_begin(cacheTitleId);
-		break;
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		RendererShaderMtl::ShaderCacheLoading_begin(cacheTitleId);
-		break;
-#endif
 	}
 
 	// get cache file name
@@ -489,21 +448,10 @@ void LatteShaderCache_Load()
 
 	LatteShaderCache_updateCompileQueue(0);
 	// write load time and RAM usage to log file (in dev build)
-#if BOOST_OS_WINDOWS
-	const auto timeLoadEnd = now_cached();
-	const auto timeLoad = std::chrono::duration_cast<std::chrono::milliseconds>(timeLoadEnd - timeLoadStart).count();
-	PROCESS_MEMORY_COUNTERS pmc2;
-	GetProcessMemoryInfo(GetCurrentProcess(), &pmc2, sizeof(PROCESS_MEMORY_COUNTERS));
-	LONGLONG totalMem2 = pmc2.PagefileUsage;
-	LONGLONG memCommited = totalMem2 - totalMem1;
-	cemuLog_log(LogType::Force, "Shader cache loaded with {} shaders. Commited mem {}MB. Took {}ms", numLoadedShaders, (sint32)(memCommited/1024/1024), timeLoad);
-#endif
 	LatteShaderCache_finish();
 	// if Vulkan or Metal then also load pipeline cache
-#if defined(ENABLE_VULKAN) || defined(ENABLE_METAL)
 	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
         LatteShaderCache_LoadPipelineCache(cacheTitleId);
-#endif
 
 
 	g_renderer->BeginFrame(true);
@@ -667,16 +615,9 @@ void LatteShaderCache_LoadPipelineCache(uint64 cacheTitleId)
 {
 	switch(g_renderer->GetType())
 	{
-	#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 	    g_shaderCacheLoaderState.pipelineFileCount = VulkanPipelineStableCache::GetInstance().BeginLoading(cacheTitleId);
 	    break;
-	#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		g_shaderCacheLoaderState.pipelineFileCount = MetalPipelineCache::GetInstance().BeginLoading(cacheTitleId);
-		break;
-#endif
 	}
 
 	g_shaderCacheLoaderState.loadedPipelines = 0;
@@ -684,16 +625,9 @@ void LatteShaderCache_LoadPipelineCache(uint64 cacheTitleId)
 
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 	    VulkanPipelineStableCache::GetInstance().EndLoading();
 	    break;
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		MetalPipelineCache::GetInstance().EndLoading();
-		break;
-#endif
 	}
 }
 
@@ -702,14 +636,8 @@ bool LatteShaderCache_updatePipelineLoadingProgress()
 	uint32 pipelinesMissingShaders = 0;
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 	    return VulkanPipelineStableCache::GetInstance().UpdateLoading(g_shaderCacheLoaderState.loadedPipelines, pipelinesMissingShaders);
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		return MetalPipelineCache::GetInstance().UpdateLoading(g_shaderCacheLoaderState.loadedPipelines, pipelinesMissingShaders);
-#endif
 	}
 
 	return false;
@@ -972,35 +900,16 @@ void LatteShaderCache_Close()
     }
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 		RendererShaderVk::ShaderCacheLoading_Close();
 		break;
-#endif
-#ifdef ENABLE_OPENGL
-	case RendererAPI::OpenGL:
-		RendererShaderGL::ShaderCacheLoading_Close();
-		break;
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		RendererShaderMtl::ShaderCacheLoading_Close();
-		break;
-#endif
 	}
 
     // if Vulkan or Metal then also close pipeline cache
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 	    VulkanPipelineStableCache::GetInstance().Close();
 		break;
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-	    MetalPipelineCache::GetInstance().Close();
-		break;
-#endif
 	}
 }

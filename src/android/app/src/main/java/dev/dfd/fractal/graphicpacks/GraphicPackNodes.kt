@@ -29,10 +29,6 @@ class GraphicPackSectionNode : GraphicPackNode {
     var children: ArrayList<GraphicPackNode> = ArrayList()
         private set
 
-    fun clear() {
-        children.clear()
-    }
-
     fun addGraphicPackDataByTokens(
         graphicPackBasicInfo: NativeGraphicPacks.GraphicPackBasicInfo,
         titleIdInstalled: Boolean

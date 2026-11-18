@@ -339,7 +339,10 @@ void gx2Export_GX2SetContextState(PPCInterpreter_t* hCPU)
 		return;
 	}
 	// check if context state changed
-	bool boiWorkaround = CafeSystem::GetRPXHashBase() == 0x6BCD618E; // workaround for a bug in Binding of Isaac to avoid flicker
+	// workaround for a bug in Binding of Isaac to avoid flicker; 0xC46D5DD1 is the USA eShop release (00050000101A3C00 v32),
+	// which without it never shows a picture: the state load display lists it rewrites reach the GPU half written
+	const uint32 rpxHash = CafeSystem::GetRPXHashBase();
+	bool boiWorkaround = rpxHash == 0x6BCD618E || rpxHash == 0xC46D5DD1;
 	if( boiWorkaround )
 	{
 		if( hCPU->gpr[3] != gx2CurrentContextStateMPTR ) // dont reload same state

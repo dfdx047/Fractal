@@ -205,12 +205,6 @@ Java_dev_dfd_fractal_nativeinterface_NativeGameTitles_setControllerProfileForTit
 	NativeGameTitles::g_currentGameProfile.Save(game_title_id);
 }
 
-extern "C" [[maybe_unused]] JNIEXPORT jboolean JNICALL
-Java_dev_dfd_fractal_nativeinterface_NativeGameTitles_titleHasShaderCacheFiles([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong game_title_id)
-{
-	return !NativeGameTitles::getCachesPaths(game_title_id).empty();
-}
-
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_dev_dfd_fractal_nativeinterface_NativeGameTitles_removeShaderCacheFilesForTitle([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong game_title_id)
 {

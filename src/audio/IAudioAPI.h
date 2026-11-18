@@ -1,8 +1,5 @@
 #pragma once
 
-#if BOOST_OS_WINDOWS
-#include <mmreg.h>
-#endif
 
 #include "config/CemuConfig.h"
 
@@ -75,9 +72,6 @@ public:
 	static std::vector<DeviceDescriptionPtr> GetDevices(AudioAPI api);
 
 protected:
-#if BOOST_OS_WINDOWS
-	WAVEFORMATEXTENSIBLE m_wfx{};
-#endif
 	
 	uint32 m_samplerate, m_channels, m_samplesPerBlock, m_bitsPerSample;
 	uint32 m_bytesPerBlock;

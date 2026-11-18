@@ -49,11 +49,6 @@ bool TestWriteAccess(const fs::path& p);
 
 fs::path MakeRelativePath(const fs::path& base, const fs::path& path);
 
-#ifdef HAS_DIRECTINPUT
-bool GUIDFromString(const char* string, GUID& guid);
-std::string StringFromGUID(const GUID& guid);
-std::wstring WStringFromGUID(const GUID& guid);
-#endif
 
 std::vector<std::string_view> TokenizeView(std::string_view string, char delimiter);
 std::vector<std::string> Tokenize(std::string_view string, char delimiter);

@@ -832,17 +832,6 @@ void NexFriends::requestPrincipleBaseInfoByPID(uint32* pidList, sint32 count, co
 		}, true);
 }
 
-void genericFriendServiceNoResponseHandler(nexServiceResponse_t* nexResponse, std::function<void(uint32)> cb)
-{
-	if (nexResponse->isSuccessful)
-		cb(0);
-	else
-	{
-		// todo: Properly handle returned error code
-		cb(NexFriends::ERR_RPC_FAILED);
-	}
-}
-
 void NexFriends::removeFriend(uint32 pid, std::function<void(RpcErrorCode)> cb)
 {
 	if (nexCon == nullptr || nexCon->getState() != nexService::STATE_CONNECTED)

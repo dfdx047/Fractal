@@ -43,10 +43,6 @@ object GameControllerType {
 
     fun isTypeProfile(name: String?) = typeOfProfile(name) != null
 
-    /** Player 1's type in game [titleId], null when it follows the input settings (or a profile of the user's). */
-    fun get(titleId: Long): Int? =
-        typeOfProfile(runCatching { NativeGameTitles.getControllerProfileForTitle(titleId, 0) }.getOrNull())
-
     /** Sets player 1's type in game [titleId]; null goes back to the input settings. Returns the profile name used. */
     fun set(titleId: Long, type: Int?): Result<String?> = runCatching {
         if (type == null) {

@@ -41,34 +41,6 @@ namespace ZpIR
 		return "";
 	}
 
-	const char* getTypeName(DataType t)
-	{
-		switch (t)
-		{
-		case DataType::S64:
-			return "s64";
-		case DataType::U64:
-			return "u64";
-		case DataType::S32:
-			return "s32";
-		case DataType::U32:
-			return "u32";
-		case DataType::S16:
-			return "s16";
-		case DataType::U16:
-			return "u16";
-		case DataType::S8:
-			return "s8";
-		case DataType::U8:
-			return "u8";
-		case DataType::BOOL:
-			return "bool";
-		case DataType::POINTER:
-			return "ptr";
-		}
-		return "";
-	}
-
 	std::string DebugPrinter::getRegisterName(ZpIRBasicBlock* block, IRReg r)
 	{
 		std::string s;

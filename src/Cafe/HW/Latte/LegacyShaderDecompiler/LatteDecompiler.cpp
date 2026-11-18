@@ -10,9 +10,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#endif
 #include "util/helpers/helpers.h"
 
 // parse instruction and if valid append it to instructionList
@@ -1080,15 +1078,10 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	{
 		if (g_renderer->GetType() == RendererAPI::OpenGL || g_renderer->GetType() == RendererAPI::Vulkan)
 		{
-#if defined(ENABLE_OPENGL) || defined(ENABLE_VULKAN)
 			LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
-#endif
 		}
 		if (g_renderer->GetType() == RendererAPI::Metal)
 		{
-#ifdef ENABLE_METAL
-			LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
-#endif
 		}
 	}
 	LatteDecompiler_cleanup(shaderContext);

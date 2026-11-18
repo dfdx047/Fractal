@@ -40,13 +40,6 @@ inline fun <T, E, F> Either<T, E>.mapError(
     onError = { Error(transform(it)) }
 )
 
-inline fun <T, E, R> Either<T, E>.mapSuccess(
-    transform: (T) -> R
-): Either<R, E> = fold(
-    onSuccess = { Success(transform(it)) },
-    onError = { Error(it) }
-)
-
 inline fun <T, E, R> Either<T, E>.bind(
     next: (T) -> Either<R, E>
 ): Either<R, E> = fold(

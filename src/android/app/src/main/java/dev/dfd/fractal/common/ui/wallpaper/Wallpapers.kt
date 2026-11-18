@@ -375,8 +375,3 @@ private suspend fun decodeScaled(path: String, maxSide: Int = 1920): ImageBitmap
     }
 }
 
-/** Small swatch used in pickers. */
-@Composable
-fun WallpaperPreview(id: WallpaperId, customImagePath: String?, modifier: Modifier = Modifier) {
-    Wallpaper(id, customImagePath, economy = false, fallback = FractalPalette.Ink, modifier = modifier)
-}

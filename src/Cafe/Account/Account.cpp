@@ -569,17 +569,3 @@ void makePWHash(uint8* input, sint32 length, uint32 magic, uint8* output)
 	memcpy(output, md, SHA256_DIGEST_LENGTH);
 }
 
-void actPwTest()
-{
-	uint8 pwHash[32];
-
-	uint32 principalId = 0x12345678;
-
-	uint32 pid = 0x12345678;
-
-	makePWHash((uint8*)"pass123", 7, pid, pwHash); // calculates AccountPasswordCache
-
-	makePWHash(pwHash, 32, pid, pwHash); // calculates AccountPasswordHash
-
-	assert_dbg();
-}

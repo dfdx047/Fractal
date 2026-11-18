@@ -462,15 +462,9 @@ void FileCache::_addFileInternal(uint64 name1, uint64 name2, const uint8* fileDa
 	// write file data
 	fileStream->SetPosition(this->dataOffset + currentStartOffset);
 	fileStream->writeData(rawData, rawSize);
-#ifdef __APPLE__
-    fileStream->Flush();
-#endif
 	// write file table entry
 	fileStream->SetPosition(this->dataOffset + this->fileTableOffset + (uint64)(sizeof(FileTableEntry)*entryIndex));
 	fileStream->writeData(this->fileTableEntries + entryIndex, sizeof(FileTableEntry));
-#ifdef __APPLE__
-    fileStream->Flush();
-#endif
 	if (isCompressed)
 		free(rawData);
 }
@@ -618,49 +612,3 @@ sint32 FileCache::GetFileCount()
 	return fileCount;
 }
 
-void fileCache_test()
-{
-	FileCache* fc = FileCache::Create("testCache.bin", 0);
-	uint32 time1 = GetTickCount();
-
-	char* testString1 = (char*)malloc(1024 * 1024 * 8);
-	char* testString2 = (char*)malloc(1024 * 1024 * 8);
-	char* testString3 = (char*)malloc(1024 * 1024 * 8);
-	for (sint32 f = 0; f < 1024 * 1024 * 8; f++)
-	{
-		testString1[f] = 'a' + (f & 7);
-		testString2[f] = 'd' + (f & 3);
-		testString3[f] = 'f' + (f & 3);
-	}
-
-	for(sint32 i=0; i<2200; i++)
-	{
-		fc->AddFile({ 0x1000001ULL, (uint64)i }, (uint8*)testString1, 1024 * 1024 * 1);
-		fc->AddFile({ 0x1000002ULL, (uint64)i }, (uint8*)testString2, 1024 * 1024 * 1);
-		fc->AddFile({ 0x1000003ULL, (uint64)i }, (uint8*)testString3, 1024 * 1024 * 1);
-	}
-	uint32 time2 = GetTickCount();
-	debug_printf("Writing took %dms\n", time2-time1);
-	delete fc;
-	// verify if all entries are still valid
-	FileCache* fcRead = FileCache::Open("testCache.bin", 0);
-	uint32 time3 = GetTickCount();
-	for(sint32 i=0; i<2200; i++)
-	{
-		std::vector<uint8> fileData;
-		bool r = fcRead->GetFile({ 0x1000001ULL, (uint64)i }, fileData);
-		if (!r || fileData.size() != 1024 * 1024 * 1 || memcmp(fileData.data(), testString1, 1024 * 1024 * 1) != 0)
-			cemu_assert_debug(false);
-		r = fcRead->GetFile({ 0x1000002ULL, (uint64)i }, fileData);
-		if( !r || fileData.size() != 1024 * 1024 * 1 || memcmp(fileData.data(), testString2, 1024 * 1024 * 1) != 0 )
-			cemu_assert_debug(false);
-		r = fcRead->GetFile({ 0x1000003ULL, (uint64)i }, fileData);
-		if( !r || fileData.size() != 1024 * 1024 * 1 || memcmp(fileData.data(), testString3, 1024 * 1024 * 1) != 0 )
-			cemu_assert_debug(false);
-	}
-	uint32 time4 = GetTickCount();
-	debug_printf("Reading took %dms\n", time4-time3);
-	delete fcRead;
-	cemu_assert_debug(false);
-	exit(0);
-}

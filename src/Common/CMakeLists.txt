@@ -8,12 +8,6 @@ add_library(CemuCommon
   ExceptionHandler/ExceptionHandler.cpp
   ExceptionHandler/ExceptionHandler.h
   FileStream.h
-  GLInclude/glext.h
-  GLInclude/glFunctions.h
-  GLInclude/GLInclude.h
-  GLInclude/glxext.h
-  GLInclude/khrplatform.h
-  GLInclude/wglext.h
   MemPtr.h
   platform.h
   precompiled.cpp
@@ -26,46 +20,22 @@ add_library(CemuCommon
   version.h
 )
 
-set_property(TARGET CemuCommon PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-if(WIN32)
-	target_sources(CemuCommon PRIVATE
-		windows/platform.cpp
-		windows/platform.h
-		windows/FileStream_win32.cpp
-		ExceptionHandler/ExceptionHandler_win32.cpp
-	)
-else()
-target_sources(CemuCommon
-PRIVATE
-    unix/date.h
-    unix/fast_float.h
-    unix/platform.cpp
-    unix/platform.h
-    unix/FileStream_unix.cpp
-    unix/FileStream_unix.h
-    ExceptionHandler/ExceptionHandler_posix.cpp
+target_sources(CemuCommon PRIVATE
+  unix/date.h
+  unix/fast_float.h
+  unix/platform.cpp
+  unix/platform.h
+  unix/FileStream_unix.cpp
+  unix/FileStream_unix.h
+  ExceptionHandler/ExceptionHandler_posix.cpp
+  android/FileStream_android.cpp
+  android/FileStream_android.h
+  android/FdStream.h
+  android/FileStream_saf.cpp
+  android/FileStream_saf.h
+  android/FilesystemAndroid.cpp
+  android/FilesystemAndroid.h
 )
-endif()
-
-if(LINUX)
-	target_sources(CemuCommon PRIVATE
-		ExceptionHandler/ELFSymbolTable.cpp
-		ExceptionHandler/ELFSymbolTable.h
-	)
-endif()
-
-if(ANDROID)
-  target_sources(CemuCommon PRIVATE
-    android/FileStream_android.cpp
-    android/FileStream_android.h
-    android/FdStream.h
-    android/FileStream_saf.cpp
-    android/FileStream_saf.h
-    android/FilesystemAndroid.cpp
-    android/FilesystemAndroid.h
-  )
-endif()
 
 # CemuCommon always builts the precompiled header
 target_precompile_headers(CemuCommon PRIVATE precompiled.h)
@@ -75,13 +45,7 @@ target_link_libraries(CemuCommon PRIVATE
 	glm::glm
 )
 
-if(ANDROID)
-  target_link_libraries(CemuCommon PRIVATE Boost::iostreams log)
-endif()
-
-if (UNIX AND NOT APPLE AND NOT ANDROID)
-	target_link_libraries(CemuCommon PRIVATE X11::X11 X11::Xrender X11::Xutil)
-endif()
+target_link_libraries(CemuCommon PRIVATE Boost::iostreams log)
 
 # PUBLIC because:
 # - boost/nowide/convert.hpp is included in precompiled.h

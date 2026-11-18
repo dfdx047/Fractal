@@ -613,11 +613,6 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
     std::string finalFragmentSrc;
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		finalFragmentSrc = fragment_source;
-		break;
-#endif
 	default:
 		finalFragmentSrc = PrependFragmentPreamble(fragment_source);
 		break;
@@ -872,56 +867,6 @@ void RendererOutputShader::InitializeStatic()
 {
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_METAL
-    case RendererAPI::Metal:
-    {
-        std::string vertex_source = GetMetalVertexSource(false);
-        std::string vertex_source_ud = GetMetalVertexSource(true);
-
-       	s_copy_shader = new RendererOutputShader(vertex_source, s_copy_shader_source_mtl);
-       	s_copy_shader_ud = new RendererOutputShader(vertex_source_ud, s_copy_shader_source_mtl);
-
-       	s_bicubic_shader = new RendererOutputShader(vertex_source, s_bicubic_shader_source_mtl);
-       	s_bicubic_shader_ud = new RendererOutputShader(vertex_source_ud, s_bicubic_shader_source_mtl);
-
-       	s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source_mtl);
-       	s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source_mtl);
-		break;
-    }
-#endif
-#ifdef ENABLE_OPENGL
-    case RendererAPI::OpenGL:
-    {
-    	std::string vertex_source, vertex_source_ud;
-    	// vertex shader
-		vertex_source = GetOpenGlVertexSource(false);
-		vertex_source_ud = GetOpenGlVertexSource(true);
-
-    	s_copy_shader = new RendererOutputShader(vertex_source, s_copy_shader_source);
-    	s_copy_shader_ud = new RendererOutputShader(vertex_source_ud, s_copy_shader_source);
-
-    	s_bicubic_shader = new RendererOutputShader(vertex_source, s_bicubic_shader_source);
-    	s_bicubic_shader_ud = new RendererOutputShader(vertex_source_ud, s_bicubic_shader_source);
-
-    	s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
-    	s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);
-
-    	// no Metal versions, the filter selection falls back to Hermite there
-    	s_fsr_shader = new RendererOutputShader(vertex_source, s_fsr_shader_source);
-    	s_fsr_shader_ud = new RendererOutputShader(vertex_source_ud, s_fsr_shader_source);
-
-    	s_sgsr_shader = new RendererOutputShader(vertex_source, s_sgsr_shader_source);
-    	s_sgsr_shader_ud = new RendererOutputShader(vertex_source_ud, s_sgsr_shader_source);
-
-    	s_sgsr_edge_shader = new RendererOutputShader(vertex_source, s_sgsr_edge_shader_source);
-    	s_sgsr_edge_shader_ud = new RendererOutputShader(vertex_source_ud, s_sgsr_edge_shader_source);
-
-    	s_rcas_shader = new RendererOutputShader(vertex_source, s_rcas_shader_source);
-    	s_rcas_shader_ud = new RendererOutputShader(vertex_source_ud, s_rcas_shader_source);
-		break;
-    }
-#endif
-#ifdef ENABLE_VULKAN
     case RendererAPI::Vulkan:
     {
     	std::string vertex_source, vertex_source_ud;
@@ -952,7 +897,6 @@ void RendererOutputShader::InitializeStatic()
     	s_rcas_shader_ud = new RendererOutputShader(vertex_source_ud, s_rcas_shader_source);
 		break;
     }
-#endif
 	}
 }
 

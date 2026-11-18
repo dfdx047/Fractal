@@ -1,27 +1,14 @@
 add_library(CemuResource)
 
-set_property(TARGET CemuResource PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
 cemu_use_precompiled_header(CemuResource)
 
-# .S files are used for resource embedding on Linux+macOS currently, we can drop this once C/C++ #embed is generally available
+# .S files are used for resource embedding, we can drop this once C/C++ #embed is generally available
 enable_language(ASM)
 
-# icon resources
 target_sources(CemuResource PRIVATE
-embedded/resources.cpp
-embedded/resources.h
+	embedded/fontawesome.S
+	CafeDefaultFont.cpp
 )
-
-if(UNIX)
-    if(NOT APPLE)
-        target_sources(CemuResource PRIVATE embedded/fontawesome.S)
-    else()
-        target_sources(CemuResource PRIVATE embedded/fontawesome_macos.S)
-    endif()
-endif()
-
-target_sources(CemuResource PRIVATE CafeDefaultFont.cpp)
 
 target_include_directories(CemuResource PUBLIC "../")
 

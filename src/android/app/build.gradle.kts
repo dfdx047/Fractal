@@ -57,6 +57,10 @@ android {
         versionName = getVersionName()
         versionCode = System.getenv("FRACTAL_VERSION_CODE")?.toIntOrNull() ?: 1
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // the emulator is arm64-only: no native libraries of dependencies for other ABIs either
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     androidResources {
@@ -94,6 +98,7 @@ android {
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -121,15 +126,7 @@ android {
                     "-DANDROID_STL=c++_shared",
                     "-DENABLE_VCPKG=ON",
                     "-DVCPKG_TARGET_ANDROID=ON",
-                    "-DENABLE_SDL=OFF",
-                    "-DENABLE_WXWIDGETS=OFF",
-                    "-DENABLE_OPENGL=OFF",
-                    "-DENABLE_BLUEZ=OFF",
                     "-DBUNDLE_SPEEX=ON",
-                    "-DENABLE_DISCORD_RPC=OFF",
-                    "-DENABLE_NSYSHID_LIBUSB=OFF",
-                    "-DENABLE_WAYLAND=OFF",
-                    "-DENABLE_HIDAPI=OFF"
                 )
                 if (versionMajor != null && versionMinor != null) {
                     arguments.addAll(
@@ -226,7 +223,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation(libs.ktor.client.okhttp)
     implementation(libs.androidx.appcompat)
     implementation(libs.google.android.material)
     implementation(libs.androidx.navigation.compose)

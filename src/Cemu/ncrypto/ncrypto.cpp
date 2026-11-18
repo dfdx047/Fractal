@@ -738,31 +738,6 @@ namespace NCrypto
 		return r;
 	}
 
-	bool verifyCert(CertECC& cert, NCrypto::ECCPubKey& signerPubKey)
-	{
-		CertECC::SIGTYPE sigType = cert.signatureType;
-
-		if (sigType == CertECC::SIGTYPE::ECC_SHA256)
-		{
-			// used for Wii U certs
-			NCrypto::CHash256 hash;
-			NCrypto::GenerateHashSHA256(cert.issuer, 0x100, hash);
-			return NCrypto::verifyHashSignature(hash.b, 32, signerPubKey, cert.signature);
-		}
-		else if (sigType == CertECC::SIGTYPE::ECC_SHA1)
-		{
-			// from Wii era
-			NCrypto::CHash160 hash;
-			NCrypto::GenerateHashSHA1(cert.issuer, 0x100, hash);
-			return NCrypto::verifyHashSignature(hash.b, 20, signerPubKey, cert.signature);
-		}
-		else
-		{
-			cemu_assert_unimplemented();
-		}
-		return false;
-	}
-
 	uint32 GetDeviceId()
 	{
 		uint32 deviceId;

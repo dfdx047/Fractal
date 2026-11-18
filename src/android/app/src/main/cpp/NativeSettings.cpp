@@ -75,18 +75,6 @@ Java_dev_dfd_fractal_nativeinterface_NativeSettings_setOverlayCPUUsageEnabled([[
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT jboolean JNICALL
-Java_dev_dfd_fractal_nativeinterface_NativeSettings_isOverlayCPUPerCoreUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
-{
-	return GetConfig().overlay.cpu_per_core_usage;
-}
-
-extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_dev_dfd_fractal_nativeinterface_NativeSettings_setOverlayCPUPerCoreUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
-{
-	GetConfig().overlay.cpu_per_core_usage = enabled;
-}
-
-extern "C" [[maybe_unused]] JNIEXPORT jboolean JNICALL
 Java_dev_dfd_fractal_nativeinterface_NativeSettings_isOverlayRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
 {
 	return GetConfig().overlay.ram_usage;
@@ -96,18 +84,6 @@ extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_dev_dfd_fractal_nativeinterface_NativeSettings_setOverlayRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
 {
 	GetConfig().overlay.ram_usage = enabled;
-}
-
-extern "C" [[maybe_unused]] JNIEXPORT jboolean JNICALL
-Java_dev_dfd_fractal_nativeinterface_NativeSettings_isOverlayVRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
-{
-	return GetConfig().overlay.vram_usage;
-}
-
-extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_dev_dfd_fractal_nativeinterface_NativeSettings_setOverlayVRAMUsageEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
-{
-	GetConfig().overlay.vram_usage = enabled;
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT jboolean JNICALL

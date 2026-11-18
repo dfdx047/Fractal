@@ -28,28 +28,11 @@ InputManager::InputManager()
 #if HAS_KEYBOARD
 	create_provider<KeyboardControllerProvider>();
 #endif
-#ifdef HAS_SDL
-	create_provider<SDLControllerProvider>();
-#endif
-#if HAS_XINPUT
-	create_provider<XInputControllerProvider>();
-#endif
-#if HAS_DIRECTINPUT
-	create_provider<DirectInputControllerProvider>();
-#endif
 #if HAS_DSU
 	create_provider<DSUControllerProvider>();
 #endif
-#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && defined(HAS_LIBUSB)
-	create_provider<GameCubeControllerProvider>();
-#endif
-#if HAS_WIIMOTE
-	create_provider<WiimoteControllerProvider>();
-#endif
-#if BOOST_PLAT_ANDROID
 	create_provider<AndroidControllerProvider>();
 	create_provider<DeviceControllerProvider>();
-#endif
 
 	m_update_thread_shutdown.store(false);
 	m_update_thread = std::thread(&InputManager::update_thread, this);

@@ -146,9 +146,6 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	async_compile = graphic.get("AsyncCompile", async_compile);
 	perf_log = graphic.get("PerformanceLog", false);
 	vk_accurate_barriers = graphic.get("vkAccurateBarriers", true); // this used to be "VulkanAccurateBarriers" but because we changed the default to true in 1.27.1 the option name had to be changed
-#ifdef ENABLE_METAL
-	force_mesh_shaders = graphic.get("ForceMeshShaders", false);
-#endif
 
 	auto frame_gen_node = graphic.get("FrameGen");
 	if (frame_gen_node.valid())
@@ -278,16 +275,8 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	}
 	// debug
 	auto debug = parser.get("Debug");
-#if BOOST_OS_WINDOWS
-	crash_dump = debug.get("CrashDumpWindows", crash_dump);
-#elif BOOST_OS_UNIX
 	crash_dump = debug.get("CrashDumpUnix", crash_dump);
-#endif
 	gdb_port = debug.get("GDBPort", 1337);
-#ifdef ENABLE_METAL
-	gpu_capture_dir = debug.get("GPUCaptureDir", "");
-	framebuffer_fetch = debug.get("FramebufferFetch", true);
-#endif
 
 	// input
 	auto input = parser.get("Input");
@@ -302,9 +291,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
 
 	
-#if BOOST_PLAT_ANDROID
 	custom_driver_path = parser.get("custom_driver_path", "");
-#endif
 
 	return parser;
 }
@@ -385,9 +372,6 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	graphic.set("OverrideGammaValue", overrideGammaValue);
 	graphic.set("UserDisplayGamma", userDisplayGamma);
 	graphic.set("GX2DrawdoneSync", gx2drawdone_sync);
-#ifdef ENABLE_METAL
-	graphic.set("ForceMeshShaders", force_mesh_shaders);
-#endif
 	//graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());
 	graphic.set("UpscaleFilter", upscale_filter);
 	graphic.set("DownscaleFilter", downscale_filter);
@@ -456,16 +440,8 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	}
 	// debug
 	auto debug = config.set("Debug");
-#if BOOST_OS_WINDOWS
-	debug.set("CrashDumpWindows", crash_dump.GetValue());
-#elif BOOST_OS_UNIX
 	debug.set("CrashDumpUnix", crash_dump.GetValue());
-#endif
 	debug.set("GDBPort", gdb_port);
-#ifdef ENABLE_METAL
-	debug.set("GPUCaptureDir", gpu_capture_dir);
-	debug.set("FramebufferFetch", framebuffer_fetch);
-#endif
 
 	// input
 	auto input = config.set("Input");
@@ -479,9 +455,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 	usbdevices.set("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad.GetValue());
 
-#if BOOST_PLAT_ANDROID
 	config.set("custom_driver_path", custom_driver_path.GetValue());
-#endif
 
 	return config;
 }

@@ -1979,46 +1979,6 @@ bool _isPVUsedInNextGroup(LatteDecompilerCFInstruction* cfInstruction, sint32 st
 }
 */
 
-void _emitVec3(LatteDecompilerShaderContext* shaderContext, uint32 dataType, LatteDecompilerALUInstruction* aluInst0, sint32 opIdx0, LatteDecompilerALUInstruction* aluInst1, sint32 opIdx1, LatteDecompilerALUInstruction* aluInst2, sint32 opIdx2)
-{
-	StringBuf* src = shaderContext->shaderSource;
-	if (dataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-	{
-		src->add("vec3(");
-		_emitOperandInputCode(shaderContext, aluInst0, opIdx0, LATTE_DECOMPILER_DTYPE_FLOAT);
-		src->add(",");
-		_emitOperandInputCode(shaderContext, aluInst1, opIdx1, LATTE_DECOMPILER_DTYPE_FLOAT);
-		src->add(",");
-		_emitOperandInputCode(shaderContext, aluInst2, opIdx2, LATTE_DECOMPILER_DTYPE_FLOAT);
-		src->add(")");
-	}
-	else if (dataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-	{
-		src->add("ivec3(");
-		_emitOperandInputCode(shaderContext, aluInst0, opIdx0, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-		src->add(",");
-		_emitOperandInputCode(shaderContext, aluInst1, opIdx1, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-		src->add(",");
-		_emitOperandInputCode(shaderContext, aluInst2, opIdx2, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-		src->add(")");
-	}
-	else
-		cemu_assert_unimplemented();
-}
-
-void _emitGPRVectorAssignment(LatteDecompilerShaderContext* shaderContext, LatteDecompilerALUInstruction** aluInstructions, sint32 count)
-{
-	StringBuf* src = shaderContext->shaderSource;
-	// output var name (GPR)
-	src->add(_getRegisterVarName(shaderContext, aluInstructions[0]->destGpr, -1));
-	src->add(".");
-	for (sint32 f = 0; f < count; f++)
-	{
-		src->add(_getElementStrByIndex(aluInstructions[f]->destElem));
-	}
-	src->add(" = ");
-}
-
 // indexed GPR writes in the switch form (typeTracker.switchRelativeGPRWrites): the instructions wrote relW<unit>, store
 // each to GPR <destGpr + AR>. Only registers that are declared can be read later, the others are skipped
 static void _emitALUGroupRelativeGPRWrites(LatteDecompilerShaderContext* shaderContext, LatteDecompilerALUInstruction* aluInstr, size_t numInstr)

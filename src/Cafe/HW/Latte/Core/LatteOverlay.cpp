@@ -2,9 +2,7 @@
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/FrameGen/FrameGenVk.h"
-#endif
 #include "Cafe/Account/Account.h"
 #include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
@@ -656,9 +654,7 @@ static void UpdateStats_PresentedFrames()
 	s_lastGenerated = generated;
 
 	bool frameGenRunning = false;
-#ifdef ENABLE_VULKAN
 	frameGenRunning = FrameGenVk::GetRuntimeStatus() == FrameGenRuntimeStatus::Active;
-#endif
 	g_state.frame_gen_active = generatedDelta > 0 || frameGenRunning;
 	g_state.presented_fps = elapsed > 0.0 ? (double)(realDelta + generatedDelta) / elapsed : 0.0;
 	g_state.frame_gen_ratio = realDelta > 0 ? (double)(realDelta + generatedDelta) / (double)realDelta : 1.0;

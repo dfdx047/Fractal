@@ -11,9 +11,7 @@
 
 #include <fmt/printf.h>
 
-#if __ANDROID__
 #include <android/log.h>
-#endif
 
 uint64 s_loggingFlagMask = cemuLog_getFlag(LogType::Force);
 
@@ -202,10 +200,8 @@ void cemuLog_writeLineToLog(std::string_view text, bool date, bool new_line)
 
 	LogContext.text_cache.emplace_back(text);
 
-#if __ANDROID__
 	// the log file is in the app's private storage, logcat makes it readable through adb
 	__android_log_write(ANDROID_LOG_INFO, "Cemu", std::string(text).c_str());
-#endif
 
 	if (new_line)
 		LogContext.text_cache.emplace_back("\n");

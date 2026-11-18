@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources the resource shrinker must keep although no code refers to them: the OFL licenses go with the
+     bundled fonts. The build doesn't package this file. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/license_ofl_inter,@raw/license_ofl_space_grotesk" />

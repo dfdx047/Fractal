@@ -3720,9 +3720,3 @@ void ppcAsmTestDisassembler()
 
 }
 
-void ppcAsmTest()
-{
-#ifdef CEMU_DEBUG_ASSERT
-	ppcAsmTestDisassembler();
-#endif
-}

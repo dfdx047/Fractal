@@ -8,7 +8,6 @@ import dev.dfd.fractal.common.settings.AppSettings
 import dev.dfd.fractal.common.settings.AppSettingsStore
 import dev.dfd.fractal.common.settings.EmulationSettings
 import dev.dfd.fractal.common.settings.GamePadPosition
-import dev.dfd.fractal.common.settings.GuiSettings
 import dev.dfd.fractal.common.ui.localization.getAvailableLanguages
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -25,13 +24,6 @@ class GeneralSettingsViewModel(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             EmulationSettings(),
-        )
-
-    val guiSettings = dataStore.data.map { it.guiSettings }
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            GuiSettings(),
         )
 
     init {

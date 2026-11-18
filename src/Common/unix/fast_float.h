@@ -129,44 +129,11 @@ from_chars_result from_chars_advanced(const char *first, const char *last,
 #include <cstring>
 #include <type_traits>
 
-#if (defined(__x86_64) || defined(__x86_64__) || defined(_M_X64)   \
-       || defined(__amd64) || defined(__aarch64__) || defined(_M_ARM64) \
-       || defined(__MINGW64__)                                          \
-       || defined(__s390x__)                                            \
-       || (defined(__ppc64__) || defined(__PPC64__) || defined(__ppc64le__) || defined(__PPC64LE__)) \
-       || defined(__EMSCRIPTEN__))
 #define FASTFLOAT_64BIT
-#elif (defined(__i386) || defined(__i386__) || defined(_M_IX86)   \
-     || defined(__arm__) || defined(_M_ARM)                   \
-     || defined(__MINGW32__))
-#define FASTFLOAT_32BIT
-#else
-  // Need to check incrementally, since SIZE_MAX is a size_t, avoid overflow.
-  // We can never tell the register width, but the SIZE_MAX is a good approximation.
-  // UINTPTR_MAX and INTPTR_MAX are optional, so avoid them for max portability.
-  #if SIZE_MAX == 0xffff
-    #error Unknown platform (16-bit, unsupported)
-  #elif SIZE_MAX == 0xffffffff
-    #define FASTFLOAT_32BIT
-  #elif SIZE_MAX == 0xffffffffffffffff
-    #define FASTFLOAT_64BIT
-  #else
-    #error Unknown platform (not 32-bit, not 64-bit?)
-  #endif
-#endif
 
-#if ((defined(_WIN32) || defined(_WIN64)) && !defined(__clang__))
-#include <intrin.h>
-#endif
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#define FASTFLOAT_VISUAL_STUDIO 1
-#endif
 
-#ifdef _WIN32
-#define FASTFLOAT_IS_BIG_ENDIAN 0
-#else
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__FreeBSD__)
 #include <machine/endian.h>
 #elif defined(sun) || defined(__sun)
 #include <sys/byteorder.h>
@@ -188,7 +155,6 @@ from_chars_result from_chars_advanced(const char *first, const char *last,
 #define FASTFLOAT_IS_BIG_ENDIAN 0
 #else
 #define FASTFLOAT_IS_BIG_ENDIAN 1
-#endif
 #endif
 
 #ifdef FASTFLOAT_VISUAL_STUDIO
@@ -254,13 +220,6 @@ struct value128 {
 fastfloat_really_inline int leading_zeroes(uint64_t input_num) {
   assert(input_num > 0);
 #ifdef FASTFLOAT_VISUAL_STUDIO
-  #if defined(_M_X64) || defined(_M_ARM64)
-  unsigned long leading_zero = 0;
-  // Search the mask data from most significant bit (MSB)
-  // to least significant bit (LSB) for a set bit (1).
-  _BitScanReverse64(&leading_zero, input_num);
-  return (int)(63 - leading_zero);
-  #else
   int last_bit = 0;
   if(input_num & uint64_t(0xffffffff00000000)) input_num >>= 32, last_bit |= 32;
   if(input_num & uint64_t(        0xffff0000)) input_num >>= 16, last_bit |= 16;
@@ -269,7 +228,6 @@ fastfloat_really_inline int leading_zeroes(uint64_t input_num) {
   if(input_num & uint64_t(               0xc)) input_num >>=  2, last_bit |=  2;
   if(input_num & uint64_t(               0x2)) input_num >>=  1, last_bit |=  1;
   return 63 - last_bit;
-  #endif
 #else
   return __builtin_clzll(input_num);
 #endif
@@ -304,11 +262,7 @@ fastfloat_really_inline uint64_t _umul128(uint64_t ab, uint64_t cd,
 fastfloat_really_inline value128 full_multiplication(uint64_t a,
                                                      uint64_t b) {
   value128 answer;
-#ifdef _M_ARM64
-  // ARM64 has native support for 64-bit multiplications, no need to emulate
-  answer.high = __umulh(a, b);
-  answer.low = a * b;
-#elif defined(FASTFLOAT_32BIT) || (defined(_WIN64) && !defined(__clang__))
+#if defined(FASTFLOAT_32BIT)
   answer.low = _umul128(a, b, &answer.high); // _umul128 not available on ARM64
 #elif defined(FASTFLOAT_64BIT)
   __uint128_t r = ((__uint128_t)a) * b;

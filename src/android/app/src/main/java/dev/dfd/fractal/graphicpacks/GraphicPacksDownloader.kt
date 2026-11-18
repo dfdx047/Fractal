@@ -3,11 +3,6 @@ package dev.dfd.fractal.graphicpacks
 import dev.dfd.fractal.BuildConfig
 import dev.dfd.fractal.common.io.unzip
 import dev.dfd.fractal.nativeinterface.NativeGraphicPacks
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsBytes
-import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -17,6 +12,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlin.io.path.div
 import kotlin.io.path.readText
 import kotlin.time.Clock
@@ -42,9 +39,29 @@ data class Asset(
     val browserDownloadUrl: String
 )
 
-class GraphicPacksDownloader(private val client: HttpClient = HttpClient()) {
+class GraphicPacksDownloader {
     private val json = Json {
         ignoreUnknownKeys = true
+    }
+
+    private class Response(val code: Int, val body: ByteArray) {
+        val isSuccess get() = code in 200..299
+        fun text() = body.decodeToString()
+    }
+
+    /** GET [url]; the body of an error status is read too. */
+    private suspend fun get(url: String): Response = withContext(Dispatchers.IO) {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "Fractal-emulator")
+        }
+        try {
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            Response(code, stream?.use { it.readBytes() } ?: ByteArray(0))
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun getCurrentVersion(graphicPacksDir: File): String? {
@@ -62,10 +79,10 @@ class GraphicPacksDownloader(private val client: HttpClient = HttpClient()) {
                 "version=${BuildConfig.VERSION_NAME}" +
                 "&t=${Clock.System.now().toEpochMilliseconds()}"
 
-        val response = client.get(queryUrl)
-        val body = response.body<String>().trim()
+        val response = get(queryUrl)
+        val body = response.text().trim()
 
-        if (response.status.isSuccess() && body.startsWith("http")) {
+        if (response.isSuccess && body.startsWith("http")) {
             return body
         }
 
@@ -73,14 +90,14 @@ class GraphicPacksDownloader(private val client: HttpClient = HttpClient()) {
     }
 
     private suspend fun fetchLatestRelease(): Release? {
-        val response = client.get(getUpdateUrl())
+        val response = get(getUpdateUrl())
 
-        if (!response.status.isSuccess()) {
+        if (!response.isSuccess) {
             return null
         }
 
         return try {
-            json.decodeFromString<Release>(response.body())
+            json.decodeFromString<Release>(response.text())
         } catch (_: Exception) {
             null
         }
@@ -91,13 +108,13 @@ class GraphicPacksDownloader(private val client: HttpClient = HttpClient()) {
     }
 
     private suspend fun downloadZip(url: String): ByteArray? {
-        val response = client.get(url)
+        val response = get(url)
 
-        if (!response.status.isSuccess()) {
+        if (!response.isSuccess) {
             return null
         }
 
-        return response.bodyAsBytes()
+        return response.body
     }
 
     private suspend fun extractAndInstall(

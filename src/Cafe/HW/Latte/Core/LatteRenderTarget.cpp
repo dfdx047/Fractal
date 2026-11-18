@@ -718,9 +718,6 @@ void LatteRenderTarget_itHLESwapScanBuffer()
 
 	LatteTC_CleanupUnusedTextures();
 	LatteSHRC_CleanupShaderStateCache();
-#ifdef ENABLE_OPENGL
-	LatteDraw_cleanupAfterFrame();
-#endif
 	LatteQuery_CancelActiveGPU7Queries();
 	LatteBufferCache_notifySwapTVScanBuffer();
 	LattePerformanceMonitor_frameBegin();
@@ -1037,9 +1034,6 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	g_renderer->HandleScreenshotRequest(textureView, isPadView);
 	if (!g_renderer->ImguiBegin(!isPadView))
 		return;
-#if !BOOST_PLAT_ANDROID
-	swkbd::render(!isPadView);
-#endif
 	nn::erreula::render(!isPadView);
 	LatteOverlay_render(isPadView);
 	g_renderer->ImguiEnd();

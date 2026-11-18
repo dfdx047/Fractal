@@ -496,15 +496,6 @@ namespace GX2
 		GX2Command_NoteDisplayListEvent('B', buffer, maxSize);
 	}
 
-	uint32 GX2WriteGather_getDisplayListWriteDistance(sint32 coreIndex)
-	{
-		auto& coreCBState = s_perCoreCBState[coreIndex];
-		cemu_assert_debug(coreCBState.isDisplayList);
-		if (coreCBState.currentWritePtr == nullptr)
-			return 0;
-		return (uint32)(coreCBState.currentWritePtr - coreCBState.bufferPtr) * 4;
-	}
-
 	uint32 GX2WriteGather_endDisplayList(PPCInterpreter_t* hCPU, MPTR buffer)
 	{
 		uint32 coreIndex = coreinit::OSGetCoreId();

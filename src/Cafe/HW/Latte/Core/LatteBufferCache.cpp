@@ -1814,11 +1814,6 @@ void LatteBufferCache_processDCFlushQueue()
 	s_DCFlushQueueAlternate->ForAllAndClear([](uint32 index) {LatteBufferCache_invalidatePage(index * CACHE_PAGE_SIZE); });
 }
 
-void LatteBufferCache_notifyDrawDone()
-{
-
-}
-
 void LatteBufferCache_notifySwapTVScanBuffer()
 {
 	if( ActiveSettings::FlushGPUCacheOnSwap() )

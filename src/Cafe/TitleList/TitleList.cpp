@@ -1,8 +1,6 @@
 #include "TitleList.h"
-#if !BOOST_OS_WINDOWS
 #include <fcntl.h>
 #include <unistd.h>
-#endif
 #include "Common/FileStream.h"
 
 #include "util/helpers/helpers.h"
@@ -152,14 +150,12 @@ void CafeTitleList::StoreCacheFile()
 		fs::remove(tmpPath, ec);
 		return;
 	}
-#if !BOOST_OS_WINDOWS
 	// sync before the rename, or a reboot soon after can leave the cache full of zeros (see XMLConfig::Save)
 	if (int fd = open(tmpPath.c_str(), O_RDONLY); fd >= 0)
 	{
 		fsync(fd);
 		close(fd);
 	}
-#endif
 	fs::rename(tmpPath, sTLCacheFilePath, ec);
 }
 
@@ -383,7 +379,6 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 		else if (boost::iequals(dirName, "meta"))
 			hasMetaFolder = true;
 	};
-#if BOOST_PLAT_ANDROID
 	if (FilesystemAndroid::IsContentUri(path))
 	{
 		for (auto&& file : FilesystemAndroid::ListFiles(path))
@@ -401,7 +396,6 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 		}
 	}
 	else
-#endif // BOOST_PLAT_ANDROID
 	{
 		std::error_code ec;
 		for (auto& it : fs::directory_iterator(path, ec))

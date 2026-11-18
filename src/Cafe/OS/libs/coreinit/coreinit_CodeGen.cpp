@@ -14,17 +14,6 @@ namespace coreinit
 		uint8* cacheStateCopy; // holds a copy of the entire range, simulates icache state (updated via ICBI)
 	}coreinitCodeGen = {0};
 
-	void codeGenArea_memoryWriteCallback(void* pageStart, size_t size)
-	{
-		uint32 ea = memory_getVirtualOffsetFromPointer(pageStart);
-		uint32 eaEnd = ea + (uint32)size;
-		while (ea <= eaEnd)
-		{
-			codeGenHandleICBI(ea);
-			ea += 0x20;
-		}
-	}
-
 	void OSGetCodegenVirtAddrRange(betype<uint32>* rangeStart, betype<uint32>* rangeSize)
 	{
 		uint32 codegenSize = 0x01000000; // todo: Read from cos.xml

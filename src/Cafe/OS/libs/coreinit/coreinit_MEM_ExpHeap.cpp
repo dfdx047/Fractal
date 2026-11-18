@@ -390,21 +390,6 @@ MEMHeapHandle _MEMExpHeap_InitHeap(void* startAddress, void* endAddress, uint32 
 	return (MEMHeapHandle)header;
 }
 
-MEMHeapHandle MEMCreateExpHeap(void* startAddress, uint32 size)
-{
-	return MEMCreateExpHeapEx(startAddress, size, MEM_HEAP_OPTION_NONE);
-}
-
-void* MEMAllocFromExpHeap(MEMHeapHandle heap, uint32 size)
-{
-	return MEMAllocFromExpHeapEx(heap, size, MEM_HEAP_DEFAULT_ALIGNMENT);
-}
-
-uint32 MEMGetAllocatableSizeForExpHeap(MEMHeapHandle heap)
-{
-	return MEMGetAllocatableSizeForExpHeapEx(heap, MEM_HEAP_DEFAULT_ALIGNMENT);
-}
-
 void IsValidExpHeapHandle_(MEMHeapHandle heap)
 {
 	cemu_assert_debug(heap != MEM_HEAP_INVALID_HANDLE);

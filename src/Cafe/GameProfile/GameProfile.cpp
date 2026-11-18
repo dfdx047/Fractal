@@ -11,43 +11,11 @@
 
 std::unique_ptr<GameProfile> g_current_game_profile = std::make_unique<GameProfile>();
 
-struct gameProfileBooleanOption_t
-{
-	bool isPresent = false;
-	bool value;
-};
-
 /*
 * Attempts to load a boolean option
 * If the option exists, true is returned.
-* The boolean is stored in *optionValue
+* The boolean is stored in option
 */
-bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameProfileBooleanOption_t* option)
-{
-	auto option_value = iniParser->FindOption(optionName);
-	option->isPresent = false;
-	option->value = false;
-	if (!option_value)
-		return false;
-	// parse option
-	if (boost::iequals(*option_value, "false") || boost::iequals(*option_value, "0"))
-	{
-		option->isPresent = true;
-		option->value = false;
-		return true;
-	}
-	else if (boost::iequals(*option_value, "true") || boost::iequals(*option_value, "1"))
-	{
-		option->isPresent = true;
-		option->value = true;
-		return true;
-	}
-	else
-		cemuLog_log(LogType::Force, "Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
-	return false;
-}
-
-
 bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName, bool& option)
 {
 	auto option_value = iniParser.FindOption(optionName);
@@ -229,11 +197,6 @@ bool GameProfile::Load(uint64_t title_id)
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
 			gameProfile_loadBooleanOption2(iniParser, "fullSyncAtGX2DrawDone", m_fullSyncAtGX2DrawDone);
 			gameProfile_loadBooleanOption2(iniParser, "turnipSysmem", m_turnipSysmem);
-#ifdef ENABLE_METAL
-			gameProfile_loadBooleanOption2(iniParser, "shaderFastMath", m_shaderFastMath);
-			gameProfile_loadEnumOption(iniParser, "metalBufferCacheMode2", m_metalBufferCacheMode);
-			gameProfile_loadEnumOption(iniParser, "positionInvariance2", m_positionInvariance);
-#endif
 
 			// legacy support
 			auto option_precompiledShaders = iniParser.FindOption("precompiledShaders");
@@ -278,7 +241,6 @@ bool GameProfile::Load(uint64_t title_id)
 			}
 
 		}
-#if BOOST_PLAT_ANDROID
 		else if (boost::iequals(iniParser.GetCurrentSectionName(), "AndroidDriver"))
 		{
 			gameProfile_loadEnumOption(iniParser, "mode", m_driverSetting.mode);
@@ -288,7 +250,6 @@ bool GameProfile::Load(uint64_t title_id)
 				m_driverSetting.customPath = iniParser.FindOption("customPath");
 			}
 		}
-#endif
 	}
 	return true;
 }
@@ -327,11 +288,6 @@ void GameProfile::Save(uint64_t title_id)
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_OPTIONAL_ENTRY(fullSyncAtGX2DrawDone);
 	WRITE_OPTIONAL_ENTRY(turnipSysmem);
-#ifdef ENABLE_METAL
-	WRITE_ENTRY(shaderFastMath);
-	WRITE_ENTRY_NUMBERED(metalBufferCacheMode, 2);
-	WRITE_ENTRY_NUMBERED(positionInvariance, 2);
-#endif
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
@@ -345,13 +301,11 @@ void GameProfile::Save(uint64_t title_id)
 
 	fs->writeLine("");
 
-#if BOOST_PLAT_ANDROID
 	fs->writeLine("[AndroidDriver]");
 	fs->writeLine(fmt::format("{} = {}", "mode", m_driverSetting.mode).c_str());
 	if (m_driverSetting.mode == DriverSettingMode::Custom && m_driverSetting.customPath.has_value())
 		fs->writeLine(fmt::format("{} = {}", "customPath", m_driverSetting.customPath.value()).c_str());
 	fs->writeLine("");
-#endif
 
 #undef WRITE_OPTIONAL_ENTRY
 #undef WRITE_ENTRY
@@ -372,11 +326,6 @@ void GameProfile::ResetOptional()
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fullSyncAtGX2DrawDone.reset();
 	m_turnipSysmem.reset();
-#ifdef ENABLE_METAL
-	m_shaderFastMath = true;
-	m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
-	m_positionInvariance = PositionInvariance::Auto;
-#endif
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
 	m_cpuMode.reset(); // CPUModeOption::kSingleCoreRecompiler;
@@ -399,11 +348,6 @@ void GameProfile::Reset()
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fullSyncAtGX2DrawDone.reset();
 	m_turnipSysmem.reset();
-#ifdef ENABLE_METAL
-	m_shaderFastMath = true;
-	m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
-	m_positionInvariance = PositionInvariance::Auto;
-#endif
 	m_precompiledShaders = PrecompiledShaderOption::Auto;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;

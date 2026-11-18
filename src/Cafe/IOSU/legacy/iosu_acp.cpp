@@ -62,19 +62,6 @@ namespace iosu
 		*v = value;
 	}
 
-	void _xml_parseHex16(tinyxml2::XMLElement* xmlElement, const char* name, uint16be* v)
-	{
-		tinyxml2::XMLElement* subElement = xmlElement->FirstChildElement(name);
-		*v = 0;
-		if (subElement == nullptr)
-			return;
-		const char* text = subElement->GetText();
-		uint32 value;
-		if (sscanf(text, "%x", &value) == 0)
-			return;
-		*v = value;
-	}
-
 	void _xml_parseHex32(tinyxml2::XMLElement* xmlElement, const char* name, uint32be* v)
 	{
 		tinyxml2::XMLElement* subElement = xmlElement->FirstChildElement(name);
@@ -570,11 +557,6 @@ namespace iosu
 		std::thread t(iosuAcp_thread);
 		t.detach();
 		iosuAcp.isInitialized = true;
-	}
-
-	bool iosuAcp_isInitialized()
-	{
-		return iosuAcp.isInitialized;
 	}
 
 	/* Above is the legacy implementation. Below is the new style implementation which also matches the official IPC protocol and works with the real nn_acp.rpl */
