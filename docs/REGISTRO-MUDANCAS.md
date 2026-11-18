@@ -92,7 +92,7 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ### Cache de buffers da GPU de 256 MB (6 GB de RAM ou mais)
 
-- **Commit:** `BC256HASH`. O cache de buffers passa de 164 para 256 MB quando o aparelho tem 5 GB ou mais de RAM
+- **Commit:** `f3f03341`. O cache de buffers passa de 164 para 256 MB quando o aparelho tem 5 GB ou mais de RAM
   reportada (os de "6 GB" mostram ~5,5). Abaixo disso fica em 164. `buffer_cache_mb` em `perf/tuning.txt` continua valendo.
 - **Por quê:** Cars 3 no RP5 às vezes não achava espaço para um intervalo de streamout de 34 MB ("Failed to free enough
   memory in GPU buffer") e parava de desenhar: 4 de 14 runs (system e T19).

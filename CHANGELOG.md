@@ -101,7 +101,7 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 - **Twilight Princess HD:** black minimap on the Qualcomm driver (`a95f1b41`).
 - **Cars 3:** sometimes stopped drawing when a 34 MB streamout range did not fit in the GPU buffer cache (4 of 14 runs
   on the Retroid Pocket 5); the cache is 256 MB on phones with 6 GB of RAM or more (Cemu's 164 MB below), 0 of 4 runs
-  since and the 13-game regression unchanged. `buffer_cache_mb` in `perf/tuning.txt` overrides it (`BC256HASH`).
+  since and the 13-game regression unchanged. `buffer_cache_mb` in `perf/tuning.txt` overrides it (`f3f03341`).
 - **Cars 3, Ninja Gaiden 3, Disney Infinity 3.0:** draws skipped on the Qualcomm driver because rect emulation pipelines
   failed (Cars 3: 25 → 0) (`eca58396`).
 - **Sonic Lost World:** crash (SIGBUS) after the title screen (`70eb6796`); crash or hang when skipping the opening movie
