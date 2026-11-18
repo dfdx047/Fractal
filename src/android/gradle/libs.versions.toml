@@ -18,7 +18,6 @@ junit = "4.13.2"
 kotlin = "2.3.20"
 kotlinx-gettext = "0.7.0"
 kotlinx-serialization-json = "1.11.0"
-ktor = "3.4.2"
 
 [libraries]
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutlibraries" }
@@ -43,7 +42,6 @@ google-android-material = { module = "com.google.android.material:material", ver
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-gettext = { module = "name.kropp.kotlinx-gettext:kotlinx-gettext", version.ref = "kotlinx-gettext" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
-ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 
 [plugins]
 aboutlibraries-android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }

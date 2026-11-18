@@ -231,7 +231,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation(libs.ktor.client.okhttp)
     implementation(libs.androidx.appcompat)
     implementation(libs.google.android.material)
     implementation(libs.androidx.navigation.compose)
