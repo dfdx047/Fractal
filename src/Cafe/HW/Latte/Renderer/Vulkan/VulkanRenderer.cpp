@@ -14,6 +14,7 @@
 
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteTextureDecoderETC.h"
 
 #include "Cafe/CafeSystem.h"
 
@@ -626,6 +627,7 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 	deviceFeatures.occlusionQueryPrecise = m_featureControl.deviceFeatures.occlusion_query_precise;
 	deviceFeatures.depthClamp = m_featureControl.deviceFeatures.depth_clamp;
 	deviceFeatures.depthBiasClamp = VK_TRUE;
+	deviceFeatures.textureCompressionETC2 = deviceFeatures2.features.textureCompressionETC2; // BC transcoded to ETC2/EAC
 	if (m_featureControl.frameGen.enabled_on_device)
 	{
 		// optional, used by the frame generation shaders
@@ -2050,6 +2052,48 @@ void VulkanRenderer::QueryAvailableFormats()
 		m_supportedFormatInfo.fmt_bc4 = m_supportedFormatInfo.fmt_bc5 = false;
 		cemuLog_log(LogType::Force, "Vulkan: BC textures decoded on the CPU (bc_decode)");
 	}
+	// perf/tuning.txt bc_transcode_etc: where BCn is missing, BC textures are transcoded on the CPU to ETC2/EAC blocks of
+	// the same size instead of being decoded to 8 bit texels. 0: off, 1: BC4/BC5 to EAC R11/RG11, 2: also BC1 to ETC2
+	// RGB8A1, 3: also BC2/BC3 to ETC2 RGBA8 (EAC alpha)
+	const int bcTranscodeLevel = PerfLog::Tunable("bc_transcode_etc", 0);
+	if (bcTranscodeLevel > 0)
+	{
+		VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		vkGetPhysicalDeviceFeatures2(m_physicalDevice, &features2);
+		const VkPhysicalDeviceFeatures& features = features2.features;
+		auto isTranscodeTarget3DSupported = [this](VkFormat format) -> bool {
+			VkImageFormatProperties imageProp{};
+			return vkGetPhysicalDeviceImageFormatProperties(m_physicalDevice, format, VK_IMAGE_TYPE_3D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT | VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT, &imageProp) == VK_SUCCESS;
+		};
+		auto isTranscodeTargetSupported = [this](VkFormat format) -> bool {
+			VkFormatProperties fmtProp{};
+			vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &fmtProp);
+			const VkFormatFeatureFlags required = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+			if ((fmtProp.optimalTilingFeatures & required) != required)
+				return false;
+			// as created by LatteTextureVk (mutable: block compressed images accept views of the other UNORM/SRGB/SNORM variant)
+			VkImageFormatProperties imageProp{};
+			return vkGetPhysicalDeviceImageFormatProperties(m_physicalDevice, format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT | VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, &imageProp) == VK_SUCCESS;
+		};
+		auto& f = m_supportedFormatInfo;
+		if (features.textureCompressionETC2)
+		{
+			f.etc_bc4 = !f.fmt_bc4 && isTranscodeTargetSupported(VK_FORMAT_EAC_R11_UNORM_BLOCK) && isTranscodeTargetSupported(VK_FORMAT_EAC_R11_SNORM_BLOCK);
+			f.etc_bc5 = !f.fmt_bc5 && isTranscodeTargetSupported(VK_FORMAT_EAC_R11G11_UNORM_BLOCK) && isTranscodeTargetSupported(VK_FORMAT_EAC_R11G11_SNORM_BLOCK);
+			f.etc_bc1 = bcTranscodeLevel >= 2 && !f.fmt_bc1 && isTranscodeTargetSupported(VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK) && isTranscodeTargetSupported(VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK);
+			f.etc_bc23 = bcTranscodeLevel >= 3 && (!f.fmt_bc2 || !f.fmt_bc3) && isTranscodeTargetSupported(VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK) && isTranscodeTargetSupported(VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK);
+			// a view takes its format from its own dim (LatteTextureViewVk), so 2D array views of a 3D texture match the
+			// image only if 3D textures are transcoded too
+			f.etc_3d = true;
+			const VkFormat targets[] = { VK_FORMAT_EAC_R11_UNORM_BLOCK, VK_FORMAT_EAC_R11_SNORM_BLOCK, VK_FORMAT_EAC_R11G11_UNORM_BLOCK, VK_FORMAT_EAC_R11G11_SNORM_BLOCK,
+				VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK, VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK, VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK };
+			for (VkFormat target : targets)
+				f.etc_3d = f.etc_3d && isTranscodeTarget3DSupported(target);
+		}
+		cemuLog_log(LogType::Force, "Vulkan: bc_transcode_etc={} ETC2 feature {}, BC4 {} BC5 {} BC1 {} BC2/3 {} 3D {} transcoded to ETC2/EAC", bcTranscodeLevel, features.textureCompressionETC2 ? "yes" : "no", f.etc_bc4, f.etc_bc5, f.etc_bc1, f.etc_bc23, f.etc_3d);
+	}
 	VkFormatProperties fmtProp{};
 	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_D24_UNORM_S8_UINT, &fmtProp);
 	// D24S8
@@ -2866,9 +2910,104 @@ void VulkanRenderer::swapchain_createDescriptorSetLayout()
 		UnrecoverableError("failed to create descriptor set layout for swapchain");
 }
 
+// BC textures transcoded to ETC2/EAC (perf/tuning.txt bc_transcode_etc, see QueryAvailableFormats)
+static bool GetBCTranscodeFormatETC(const VkSupportedFormatInfo_t& supported, Latte::E_GX2SURFFMT format, VulkanRenderer::FormatInfoVK* formatInfoOut)
+{
+	VkFormat vkFormat;
+	TextureDecoder* decoder;
+	switch (format)
+	{
+	case Latte::E_GX2SURFFMT::BC1_UNORM:
+	case Latte::E_GX2SURFFMT::BC1_SRGB:
+		if (!supported.etc_bc1)
+			return false;
+		vkFormat = format == Latte::E_GX2SURFFMT::BC1_SRGB ? VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK : VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK;
+		decoder = TextureDecoder_BC1_To_ETC2::getInstance();
+		break;
+	case Latte::E_GX2SURFFMT::BC2_UNORM:
+	case Latte::E_GX2SURFFMT::BC2_SRGB:
+		if (!supported.etc_bc23 || supported.fmt_bc2)
+			return false;
+		vkFormat = format == Latte::E_GX2SURFFMT::BC2_SRGB ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		decoder = TextureDecoder_BC2_To_ETC2::getInstance();
+		break;
+	case Latte::E_GX2SURFFMT::BC3_UNORM:
+	case Latte::E_GX2SURFFMT::BC3_SRGB:
+		if (!supported.etc_bc23 || supported.fmt_bc3)
+			return false;
+		vkFormat = format == Latte::E_GX2SURFFMT::BC3_SRGB ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+		decoder = TextureDecoder_BC3_To_ETC2::getInstance();
+		break;
+	case Latte::E_GX2SURFFMT::BC4_UNORM:
+		if (!supported.etc_bc4)
+			return false;
+		vkFormat = VK_FORMAT_EAC_R11_UNORM_BLOCK;
+		decoder = TextureDecoder_BC4_UNORM_To_EAC::getInstance();
+		break;
+	case Latte::E_GX2SURFFMT::BC4_SNORM:
+		if (!supported.etc_bc4)
+			return false;
+		vkFormat = VK_FORMAT_EAC_R11_SNORM_BLOCK;
+		decoder = TextureDecoder_BC4_SNORM_To_EAC::getInstance();
+		break;
+	case Latte::E_GX2SURFFMT::BC5_UNORM:
+		if (!supported.etc_bc5)
+			return false;
+		vkFormat = VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+		decoder = TextureDecoder_BC5_UNORM_To_EAC::getInstance();
+		break;
+	case Latte::E_GX2SURFFMT::BC5_SNORM:
+		if (!supported.etc_bc5)
+			return false;
+		vkFormat = VK_FORMAT_EAC_R11G11_SNORM_BLOCK;
+		decoder = TextureDecoder_BC5_SNORM_To_EAC::getInstance();
+		break;
+	default:
+		return false;
+	}
+	formatInfoOut->vkImageFormat = vkFormat;
+	formatInfoOut->decoder = decoder;
+	return true;
+}
+
+// Vulkan compatibility class of an ETC2/EAC format (views of a mutable image must stay in it), 0 for other formats
+static uint32 ETCCompatibilityClass(VkFormat format)
+{
+	switch (format)
+	{
+	case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
+	case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+		return 1;
+	case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:
+	case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+		return 2;
+	case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+	case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+		return 3;
+	case VK_FORMAT_EAC_R11_UNORM_BLOCK:
+	case VK_FORMAT_EAC_R11_SNORM_BLOCK:
+		return 4;
+	case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
+	case VK_FORMAT_EAC_R11G11_SNORM_BLOCK:
+		return 5;
+	default:
+		return 0;
+	}
+}
+
 bool VulkanRenderer::texture_isViewFormatCompatible(LatteTexture* baseTexture, Latte::E_GX2SURFFMT viewFormat, bool isDepth)
 {
-	if (texture_canReinterpretFormat() || isDepth || baseTexture->isDepth || baseTexture->format == viewFormat)
+	if (isDepth || baseTexture->isDepth || baseTexture->format == viewFormat)
+		return true;
+	// a BC texture transcoded to ETC2/EAC: a view of another class (e.g. a BC1 texture seen as BC4, or as R32G32 for a
+	// raw block copy) would be invalid on the mutable image, so it becomes a separate texture synchronized by copies
+	if (const uint32 etcClass = ETCCompatibilityClass(static_cast<LatteTextureVk*>(baseTexture)->GetFormat()); etcClass != 0)
+	{
+		FormatInfoVK viewFormatInfo;
+		GetTextureFormatInfoVK(viewFormat, false, baseTexture->dim, baseTexture->width, baseTexture->height, &viewFormatInfo);
+		return ETCCompatibilityClass(viewFormatInfo.vkImageFormat) == etcClass;
+	}
+	if (texture_canReinterpretFormat())
 		return true;
 	// only images created with VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT accept views of another format
 	if (static_cast<LatteTextureVk*>(baseTexture)->m_isMutableFormat)
@@ -2941,6 +3080,8 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
 		if(format == (Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT | Latte::E_GX2SURFFMT::FMT_BIT_SRGB)) // Seen in Sonic Transformed level Starry Speedway. SRGB should just be ignored for native float formats?
 			format = Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT;
+		if ((dim != Latte::E_DIM::DIM_3D || m_supportedFormatInfo.etc_3d) && GetBCTranscodeFormatETC(m_supportedFormatInfo, format, formatInfoOut))
+			return;
 		switch (format)
 		{
 			// RGBA formats
