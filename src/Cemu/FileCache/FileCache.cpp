@@ -216,6 +216,28 @@ FileCache* FileCache::_OpenExisting(const fs::path& path, bool compareExtraVersi
 		delete fileCache;
 		return nullptr;
 	}
+	// drop entries that point outside the file (caches damaged by the old file table relocation bug): reading one allocated
+	// its whole bogus size. Freed entries are rewritten with the next file table update
+	const uint64 fileLength = fileCache->fileStream->GetSize();
+	uint32 droppedEntries = 0;
+	for (uint32 i = 0; i < fileTableEntryCount; i++)
+	{
+		FileTableEntry& entry = fileCache->fileTableEntries[i];
+		if (entry.name1 == FILECACHE_FILETABLE_FREE_NAME && entry.name2 == FILECACHE_FILETABLE_FREE_NAME)
+			continue;
+		if (fileCache->dataOffset + entry.fileOffset + (uint64)entry.fileSize <= fileLength && entry.fileOffset <= fileLength)
+			continue;
+		if (entry.name1 == FILECACHE_FILETABLE_NAME1 && entry.name2 == FILECACHE_FILETABLE_NAME2)
+			continue;
+		entry.name1 = FILECACHE_FILETABLE_FREE_NAME;
+		entry.name2 = FILECACHE_FILETABLE_FREE_NAME;
+		entry.fileOffset = 0;
+		entry.fileSize = 0;
+		entry.flags = FileTableEntry::FLAGS::FLAG_NONE;
+		droppedEntries++;
+	}
+	if (droppedEntries)
+		cemuLog_log(LogType::Force, "\"{}\": dropped {} damaged file table entries", _pathToUtf8(path), droppedEntries);
 	return fileCache;
 }
 
@@ -316,6 +338,11 @@ bool _uncompressFileData(const uint8* rawData, size_t rawSize, std::vector<uint8
 	Bytef* compressedInput = (Bytef*)rawData + 4;
 	uLongf compressedLen = (uLongf)(rawSize - 4);
 	uLongf uncompressedLen = fileSize;
+	if (fileSize > 64 * 1024 * 1024) // a damaged size prefix would otherwise allocate up to 4 GB; cache files are far smaller
+	{
+		dataOut.clear();
+		return false;
+	}
 	dataOut.resize(fileSize);
 	int zret = uncompress2(dataOut.data(), &uncompressedLen, compressedInput, &compressedLen);
 	if (zret != Z_OK)
@@ -463,8 +490,16 @@ void FileCache::_addFileInternal(uint64 name1, uint64 name2, const uint8* fileDa
 	fileStream->SetPosition(this->dataOffset + currentStartOffset);
 	fileStream->writeData(rawData, rawSize);
 	// write file table entry
-	fileStream->SetPosition(this->dataOffset + this->fileTableOffset + (uint64)(sizeof(FileTableEntry)*entryIndex));
-	fileStream->writeData(this->fileTableEntries + entryIndex, sizeof(FileTableEntry));
+	// when the file table itself is being relocated (fileCache_updateFiletable), this->fileTableOffset still points at the
+	// old table until the caller updates it, and the new table may overlap the freed old one: writing the entry there put the
+	// table's own entry in the middle of the new table (a garbage entry with a ~4 GB size that later ran the app out of
+	// memory at boot). The table data written above already holds the updated entry, so there is nothing else to write
+	const bool isFileTable = name1 == FILECACHE_FILETABLE_NAME1 && name2 == FILECACHE_FILETABLE_NAME2;
+	if (!isFileTable)
+	{
+		fileStream->SetPosition(this->dataOffset + this->fileTableOffset + (uint64)(sizeof(FileTableEntry)*entryIndex));
+		fileStream->writeData(this->fileTableEntries + entryIndex, sizeof(FileTableEntry));
+	}
 	if (isCompressed)
 		free(rawData);
 }
@@ -507,6 +542,11 @@ void FileCache::AddFileAsync(const FileName& name, const uint8* fileData, sint32
 
 bool FileCache::_getFileDataInternal(const FileTableEntry* entry, std::vector<uint8>& dataOut)
 {
+	if (this->dataOffset + entry->fileOffset + (uint64)entry->fileSize > fileStream->GetSize())
+	{
+		dataOut.clear();
+		return false;
+	}
 	std::vector<uint8> rawData(entry->fileSize);
 
 	fileStream->SetPosition(this->dataOffset + entry->fileOffset);
