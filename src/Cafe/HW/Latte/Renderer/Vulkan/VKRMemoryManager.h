@@ -265,6 +265,9 @@ public:
 	// texture upload buffer
 	void* TextureUploadBufferAcquire(uint32 size)
 	{
+		// the buffer only grows: Cemu cleared it on release, so resize() zero-filled the whole image again before every
+		// decode, a memset of the decoded size on the GPU thread. The decoders write every byte of their image
+		// (tools/neon_tests/texdecode_split_test checks that)
 		if (m_textureUploadBuffer.size() < size)
 			m_textureUploadBuffer.resize(size);
 
@@ -274,7 +277,6 @@ public:
 	void TextureUploadBufferRelease(uint8* mem)
 	{
 		cemu_assert_debug(m_textureUploadBuffer.data() == mem);
-		m_textureUploadBuffer.clear();
 	}
 
 	VKRSynchronizedRingAllocator& getStagingAllocator() { return m_stagingBuffer; }; // allocator for texture/attribute/uniform uploads

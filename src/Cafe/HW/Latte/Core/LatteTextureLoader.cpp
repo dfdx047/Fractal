@@ -2,6 +2,9 @@
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/HW/Latte/Core/LatteTextureDecodeSplit.h"
+#include "Cafe/HW/Latte/Core/LattePerfLog.h"
+#include "util/helpers/helpers.h"
 
 //#define BENCHMARK_TEXTURE_DECODING		// if defined, time it takes to decode textures will be measured and logged to log.txt
 
@@ -80,6 +83,8 @@ void LatteTextureLoader_begin(LatteTextureLoaderCtx* textureLoader, uint32 slice
 	textureLoader->width = std::max(textureLoader->width, 1);
 	textureLoader->height = height >> (mipIndex);
 	textureLoader->height = std::max(textureLoader->height, 1);
+	textureLoader->fullHeight = textureLoader->height;
+	textureLoader->rowOffset = 0;
 
 	textureLoader->pitch = surfaceInfo.pitch;
 	// calculate start address
@@ -89,20 +94,6 @@ void LatteTextureLoader_begin(LatteTextureLoaderCtx* textureLoader, uint32 slice
 		textureLoader->inputData = (uint8*)memory_getPointerFromPhysicalOffset(physMipPtr) + textureLoader->levelOffset;
 
 	SetupCachedSurfaceAddrInfo(&textureLoader->computeAddrInfo, textureLoader->sliceIndex, 0, textureLoader->bpp, textureLoader->pitch, surfaceInfo.height, depth, 1 * 1, textureLoader->tileMode, false, textureLoader->pipeSwizzle, textureLoader->bankSwizzle);
-}
-
-uint8* LatteTextureLoader_GetInput(LatteTextureLoaderCtx* textureLoader, sint32 x, sint32 y)
-{
-	// calculate address of input tile
-	uint32 offset = 0;
-	if (textureLoader->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL || textureLoader->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
-		offset = LatteAddrLib::ComputeSurfaceAddrFromCoordLinear(x / textureLoader->stepX, y / textureLoader->stepY, textureLoader->sliceIndex, 0, textureLoader->bpp, textureLoader->pitch, textureLoader->surfaceInfoHeight, textureLoader->surfaceInfoDepth);
-	else if (textureLoader->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1 || textureLoader->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THICK)
-		offset = LatteAddrLib::ComputeSurfaceAddrFromCoordMicroTiled(x / textureLoader->stepX, y / textureLoader->stepY, textureLoader->sliceIndex, textureLoader->bpp, textureLoader->pitch, textureLoader->surfaceInfoHeight, (Latte::E_HWTILEMODE)textureLoader->tileMode, false);
-	else
-		offset = LatteAddrLib::ComputeSurfaceAddrFromCoordMacroTiledCached(x / textureLoader->stepX, y / textureLoader->stepY, &textureLoader->computeAddrInfo);
-	uint8* blockData = textureLoader->inputData + offset;
-	return blockData;
 }
 
 /*
@@ -138,6 +129,45 @@ void LatteTextureLoader_loadTextureDataIntoSlice(LatteTexture* hostTexture, sint
 	{
 		g_renderer->texture_loadSlice(hostTexture, width, height, depth, pixelData, sliceIndex, mipIndex, compressedImageSize);
 	}
+}
+
+// Workers that decode large textures together with the GPU thread (LatteTextureLoader_DecodeSplit). On GPUs without BCn
+// (Mali, the Adreno blob) every BC texture is decoded on the CPU when it is loaded, on the GPU thread, and a game that
+// streams textures stalls the frame while that runs. Tuning (perf/tuning.txt):
+//   tex_decode_threads     workers besides the GPU thread; 0 = decode on the GPU thread alone (Cemu's behavior),
+//                          -1 = auto (default): the big cores minus the GPU thread and one emulated CPU thread, at most 2
+//   tex_decode_min_texels  images below this size are decoded on the GPU thread alone (default 256x256: about 0.1 ms of
+//                          BC1 to RGBA8 on a POCO X6 Pro core, well above the few microseconds of waking the workers)
+//   cpu_mask_texdecode     CPU mask for the workers (default: the big cores, like the GPU and emulated CPU threads)
+static ParallelForPool* LatteTextureLoader_GetDecodePool()
+{
+	static ParallelForPool* s_pool = []() -> ParallelForPool* {
+		sint32 workers = (sint32)PerfLog::Tunable("tex_decode_threads", -1);
+		uint64 mask = (uint64)PerfLog::Tunable("cpu_mask_texdecode", 0);
+		if (mask == 0 && PerfLog::Tunable("big_cores", 1) != 0)
+			mask = GetBigCoreMask();
+		if (workers < 0)
+		{
+			const sint32 bigCores = mask ? std::popcount(mask) : (sint32)std::thread::hardware_concurrency();
+			workers = std::clamp(bigCores - 2, 0, 2);
+		}
+		workers = std::min(workers, 7);
+		cemuLog_log(LogType::Force, "Texture decoding: {} worker threads besides the GPU thread (CPU mask {:#x})", workers, mask);
+		if (workers == 0)
+			return nullptr;
+		// never destroyed: the workers sleep on a condition variable until the process exits
+		return new ParallelForPool(workers, [mask](int index) {
+			SetThreadName(fmt::format("TexDecode{}", index).c_str());
+			if (mask)
+				PinCurrentThreadToCpuMask(mask);
+		});
+	}();
+	return s_pool;
+}
+
+static uint64 LatteTextureLoader_NowNs()
+{
+	return (uint64)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex)
@@ -210,7 +240,19 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIn
 #endif
 	if (tex->overwriteInfo.hasFormatOverwrite == false && tex->overwriteInfo.hasResolutionOverwrite == false)
 	{
-		texDecoder->decode(&textureLoader, pixelData);
+		static const sint64 s_minSplitTexels = PerfLog::Tunable("tex_decode_min_texels", 256 * 256);
+		const bool perf = PerfLog::IsActive();
+		const uint64 decodeStart = perf ? LatteTextureLoader_NowNs() : 0;
+		bool split = false;
+		if ((sint64)textureLoader.width * textureLoader.height >= s_minSplitTexels)
+		{
+			if (ParallelForPool* pool = LatteTextureLoader_GetDecodePool())
+				split = LatteTextureLoader_DecodeSplit(texDecoder, &textureLoader, pixelData, *pool, s_minSplitTexels);
+		}
+		if (!split)
+			texDecoder->decode(&textureLoader, pixelData);
+		if (perf)
+			PerfLog::TextureDecoded(LatteTextureLoader_NowNs() - decodeStart, (uint64)textureLoader.width * textureLoader.height, imageSize, split);
 	}
 #ifdef BENCHMARK_TEXTURE_DECODING
 	QueryPerformanceCounter(&benchmark_end);
@@ -247,7 +289,10 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIn
 	}
 	// load slice
 	//debug_printf("[Load Slice] Addr: %08x MIP: %02d Slice: %02d Res %04x/%04x Texel Res %04x/%04x Fmt %04x Tm %d\n", textureLoader.physAddress, mipIndex, sliceIndex, textureLoader.width, textureLoader.height, textureLoader.texelCountX, textureLoader.texelCountY, (int)format, tileMode);
+	const uint64 uploadStart = PerfLog::IsActive() ? LatteTextureLoader_NowNs() : 0;
 	LatteTextureLoader_loadTextureDataIntoSlice(tex, textureLoader.width, textureLoader.height, depth, mipLevels, pixelData, sliceIndex, mipIndex, imageSize);
+	if (uploadStart)
+		PerfLog::TextureUploadRecorded(LatteTextureLoader_NowNs() - uploadStart);
 	// write texture dump
 	if (textureLoader.dump)
 	{

@@ -34,9 +34,26 @@ struct LatteTextureLoaderCtx
 	// debug dump texture
 	bool dump;
 	uint8* dumpRGBA;
+	// row ranges (LatteTextureDecodeSplit.h): a decoder sees rows [0, height) and reads the texel rows
+	// [rowOffset, rowOffset + height) of the image, so one image can be decoded by several threads, each with its own
+	// copy of the context. fullHeight is the height of the whole image (set by LatteTextureLoader_begin)
+	sint32 rowOffset;
+	sint32 fullHeight;
 };
 
-uint8* LatteTextureLoader_GetInput(LatteTextureLoaderCtx* textureLoader, sint32 x, sint32 y);
+// address of the input element (texel or 4x4 block) at texel coordinates x, y (y relative to rowOffset)
+inline uint8* LatteTextureLoader_GetInput(LatteTextureLoaderCtx* textureLoader, sint32 x, sint32 y)
+{
+	y += textureLoader->rowOffset;
+	uint32 offset = 0;
+	if (textureLoader->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL || textureLoader->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
+		offset = LatteAddrLib::ComputeSurfaceAddrFromCoordLinear(x / textureLoader->stepX, y / textureLoader->stepY, textureLoader->sliceIndex, 0, textureLoader->bpp, textureLoader->pitch, textureLoader->surfaceInfoHeight, textureLoader->surfaceInfoDepth);
+	else if (textureLoader->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1 || textureLoader->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THICK)
+		offset = LatteAddrLib::ComputeSurfaceAddrFromCoordMicroTiled(x / textureLoader->stepX, y / textureLoader->stepY, textureLoader->sliceIndex, textureLoader->bpp, textureLoader->pitch, textureLoader->surfaceInfoHeight, (Latte::E_HWTILEMODE)textureLoader->tileMode, false);
+	else
+		offset = LatteAddrLib::ComputeSurfaceAddrFromCoordMacroTiledCached(x / textureLoader->stepX, y / textureLoader->stepY, &textureLoader->computeAddrInfo);
+	return textureLoader->inputData + offset;
+}
 
 #include "Cafe/HW/Latte/LatteAddrLib/AddrLibFastDecode.h"
 
