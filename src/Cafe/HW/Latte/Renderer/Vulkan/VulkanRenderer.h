@@ -27,6 +27,7 @@ struct VkSupportedFormatInfo_t
 	bool fmt_bc3{};
 	bool fmt_bc4{};
 	bool fmt_bc5{};
+	bool bc_to_astc{}; // BC1-BC3 without fmt_bcN transcoded to ASTC 4x4 instead of decoded to RGBA8 (bc_transcode)
 };
 
 struct VkDescriptorSetInfo

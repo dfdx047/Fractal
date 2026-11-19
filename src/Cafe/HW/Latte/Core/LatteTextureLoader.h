@@ -41,6 +41,7 @@ uint8* LatteTextureLoader_GetInput(LatteTextureLoaderCtx* textureLoader, sint32 
 #include "Cafe/HW/Latte/LatteAddrLib/AddrLibFastDecode.h"
 
 #include "Cafe/HW/Latte/Core/LatteTextureLoaderBC.h"
+#include "Cafe/HW/Latte/Core/LatteTextureTranscodeASTC.h"
 using decodingFn = void (uint8 *, float *);
 
 inline void BC1_GetPixel(uint8* inputData, sint32 x, sint32 y, uint8 rgba[4])
@@ -2030,6 +2031,80 @@ public:
 		*(outputPixel + 1) = (uint8)(green * 255.0f);
 		*(outputPixel + 2) = (uint8)(blue * 255.0f);
 		*(outputPixel + 3) = (uint8)(alpha * 255.0f);
+	}
+};
+
+// BC1/BC2/BC3 transcoded to ASTC 4x4 for GPUs without BCn (perf/tuning.txt bc_transcode, VulkanRenderer): same block
+// grid as the BC texture, 16 bytes per 4x4 block instead of 4 bytes per texel as RGBA8. The BC blocks are copied with
+// the loops of the BC passthrough decoders (packed, decodedTexelCountX blocks per row) and transcoded in place
+class TextureDecoder_BCn_To_ASTC4x4 : public TextureDecoder
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 16;
+	}
+
+	sint32 getTexelCountX(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return (textureLoader->width + 3) / 4;
+	}
+
+	sint32 getTexelCountY(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return (textureLoader->height + 3) / 4;
+	}
+
+protected:
+	static size_t BlockCount(LatteTextureLoaderCtx* textureLoader)
+	{
+		return (size_t)textureLoader->decodedTexelCountX * (size_t)textureLoader->decodedTexelCountY;
+	}
+};
+
+class TextureDecoder_BC1_To_ASTC4x4 : public TextureDecoder_BCn_To_ASTC4x4, public SingletonClass<TextureDecoder_BC1_To_ASTC4x4>
+{
+public:
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		// 8 byte blocks in the first half of the buffer, expanded to 16 bytes from the last block down
+		optimizedDecodeLoops<uint64, 1, false, true>(textureLoader, outputData);
+		transcodeBC1ToASTC4x4InPlace(outputData, BlockCount(textureLoader));
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		BC1_GetPixel(blockData, blockOffsetX, blockOffsetY, outputPixel);
+	}
+};
+
+class TextureDecoder_BC2_To_ASTC4x4 : public TextureDecoder_BCn_To_ASTC4x4, public SingletonClass<TextureDecoder_BC2_To_ASTC4x4>
+{
+public:
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		optimizedDecodeLoops<uint64, 2, false, true>(textureLoader, outputData);
+		transcodeBC2ToASTC4x4InPlace(outputData, BlockCount(textureLoader));
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		TextureDecoder_BC2::getInstance()->decodePixelToRGBA(blockData, outputPixel, blockOffsetX, blockOffsetY);
+	}
+};
+
+class TextureDecoder_BC3_To_ASTC4x4 : public TextureDecoder_BCn_To_ASTC4x4, public SingletonClass<TextureDecoder_BC3_To_ASTC4x4>
+{
+public:
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		optimizedDecodeLoops<uint64, 2, false, true>(textureLoader, outputData);
+		transcodeBC3ToASTC4x4InPlace(outputData, BlockCount(textureLoader));
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		TextureDecoder_BC3::getInstance()->decodePixelToRGBA(blockData, outputPixel, blockOffsetX, blockOffsetY);
 	}
 };
 

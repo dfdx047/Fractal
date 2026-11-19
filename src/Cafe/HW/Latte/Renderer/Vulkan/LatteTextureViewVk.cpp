@@ -65,8 +65,10 @@ LatteTextureViewVk::LatteTextureViewVk(VkDevice device, LatteTextureVk* texture,
 	}
 	else if (dim != texture->dim || format != texture->format)
 	{
+		// the host format follows the image's dimension, not the view's: BC textures transcoded to ASTC (bc_transcode)
+		// stay RGBA8 in 1D and 3D images, a 2D array view of a 3D one must keep RGBA8
 		VulkanRenderer::FormatInfoVK texFormatInfo;
-		VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, texture->isDepth, dim, 0, 0, &texFormatInfo);
+		VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, texture->isDepth, texture->dim, 0, 0, &texFormatInfo);
 		m_format = texFormatInfo.vkImageFormat;
 	}
 	else

@@ -134,6 +134,8 @@ add_library(CemuCafe
   HW/Latte/Core/LatteTextureLoader.h
   HW/Latte/Core/LatteTextureLoaderBC.cpp
   HW/Latte/Core/LatteTextureLoaderBC.h
+  HW/Latte/Core/LatteTextureTranscodeASTC.cpp
+  HW/Latte/Core/LatteTextureTranscodeASTC.h
   HW/Latte/Core/LatteTextureReadback.cpp
   HW/Latte/Core/LatteTextureReadbackInfo.h
   HW/Latte/Core/LatteTextureView.cpp

@@ -626,6 +626,7 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 	deviceFeatures.occlusionQueryPrecise = m_featureControl.deviceFeatures.occlusion_query_precise;
 	deviceFeatures.depthClamp = m_featureControl.deviceFeatures.depth_clamp;
 	deviceFeatures.depthBiasClamp = VK_TRUE;
+	deviceFeatures.textureCompressionASTC_LDR = deviceFeatures2.features.textureCompressionASTC_LDR; // bc_transcode
 	if (m_featureControl.frameGen.enabled_on_device)
 	{
 		// optional, used by the frame generation shaders
@@ -2050,6 +2051,30 @@ void VulkanRenderer::QueryAvailableFormats()
 		m_supportedFormatInfo.fmt_bc4 = m_supportedFormatInfo.fmt_bc5 = false;
 		cemuLog_log(LogType::Force, "Vulkan: BC textures decoded on the CPU (bc_decode)");
 	}
+	// perf/tuning.txt bc_transcode=1: BC1/BC2/BC3 without native support are transcoded to ASTC 4x4 (same block grid,
+	// 16 bytes per 4x4 block) instead of decoded to RGBA8 (4 bytes per texel). Needs sampling with linear filtering and
+	// transfers on optimal tiling images, for the image kinds created for these textures (2D, arrays, cube maps,
+	// mutable). 1D and 3D textures stay RGBA8 (2D block formats in such images are optional)
+	if (PerfLog::Tunable("bc_transcode", 0) == 1)
+	{
+		auto isAstcUsable = [this](VkFormat format) -> bool
+		{
+			VkFormatProperties fmtProp{};
+			vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &fmtProp);
+			const VkFormatFeatureFlags required = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
+				VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+			if ((fmtProp.optimalTilingFeatures & required) != required)
+				return false;
+			VkImageFormatProperties imageProp{};
+			const VkResult r = vkGetPhysicalDeviceImageFormatProperties(m_physicalDevice, format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+				VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT | VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, &imageProp);
+			return r == VK_SUCCESS && imageProp.maxExtent.width >= 8192 && imageProp.maxExtent.height >= 8192;
+		};
+		const bool astc = isAstcUsable(VK_FORMAT_ASTC_4x4_UNORM_BLOCK) && isAstcUsable(VK_FORMAT_ASTC_4x4_SRGB_BLOCK);
+		m_supportedFormatInfo.bc_to_astc = astc;
+		cemuLog_log(LogType::Force, "Vulkan: bc_transcode: {}", astc ? "BC1-BC3 without native support transcoded to ASTC 4x4" : "ASTC 4x4 not supported, BC decoded to RGBA8");
+	}
 	VkFormatProperties fmtProp{};
 	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_D24_UNORM_S8_UINT, &fmtProp);
 	// D24S8
@@ -2885,6 +2910,8 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 	formatInfoOut->texelCountY = height;
 	formatInfoOut->isCompressed = false;
 	formatInfoOut->isAlternateFormat = false;
+	// bc_transcode: ASTC is a 2D block format, 1D and 3D images keep RGBA8
+	const bool bcToAstc = m_supportedFormatInfo.bc_to_astc && (dim == Latte::E_DIM::DIM_2D || dim == Latte::E_DIM::DIM_2D_ARRAY || dim == Latte::E_DIM::DIM_CUBEMAP);
 	if (isDepth)
 	{
 		switch (format)
@@ -3172,8 +3199,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			else
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
-				formatInfoOut->decoder = TextureDecoder_BC1_To_R8G8B8A8::getInstance();
+				if (bcToAstc)
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+					formatInfoOut->decoder = TextureDecoder_BC1_To_ASTC4x4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
+				}
+				else
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+					formatInfoOut->decoder = TextureDecoder_BC1_To_R8G8B8A8::getInstance();
+				}
 			}
 			break;
 		case Latte::E_GX2SURFFMT::BC1_UNORM:
@@ -3184,8 +3220,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			else
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-				formatInfoOut->decoder = TextureDecoder_BC1_To_R8G8B8A8::getInstance();
+				if (bcToAstc)
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+					formatInfoOut->decoder = TextureDecoder_BC1_To_ASTC4x4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
+				}
+				else
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+					formatInfoOut->decoder = TextureDecoder_BC1_To_R8G8B8A8::getInstance();
+				}
 			}
 			break;
 		case Latte::E_GX2SURFFMT::BC2_UNORM:
@@ -3196,8 +3241,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			else
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-				formatInfoOut->decoder = TextureDecoder_BC2_To_R8G8B8A8::getInstance();
+				if (bcToAstc)
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+					formatInfoOut->decoder = TextureDecoder_BC2_To_ASTC4x4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
+				}
+				else
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+					formatInfoOut->decoder = TextureDecoder_BC2_To_R8G8B8A8::getInstance();
+				}
 			}
 			break;
 		case Latte::E_GX2SURFFMT::BC2_SRGB:
@@ -3208,8 +3262,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			else
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
-				formatInfoOut->decoder = TextureDecoder_BC2_To_R8G8B8A8::getInstance();
+				if (bcToAstc)
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+					formatInfoOut->decoder = TextureDecoder_BC2_To_ASTC4x4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
+				}
+				else
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+					formatInfoOut->decoder = TextureDecoder_BC2_To_R8G8B8A8::getInstance();
+				}
 			}
 			break;
 		case Latte::E_GX2SURFFMT::BC3_UNORM:
@@ -3220,8 +3283,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			else
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-				formatInfoOut->decoder = TextureDecoder_BC3_To_R8G8B8A8::getInstance();
+				if (bcToAstc)
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+					formatInfoOut->decoder = TextureDecoder_BC3_To_ASTC4x4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
+				}
+				else
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+					formatInfoOut->decoder = TextureDecoder_BC3_To_R8G8B8A8::getInstance();
+				}
 			}
 			break;
 		case Latte::E_GX2SURFFMT::BC3_SRGB:
@@ -3232,8 +3304,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			}
 			else
 			{
-				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
-				formatInfoOut->decoder = TextureDecoder_BC3_To_R8G8B8A8::getInstance();
+				if (bcToAstc)
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+					formatInfoOut->decoder = TextureDecoder_BC3_To_ASTC4x4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
+				}
+				else
+				{
+					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+					formatInfoOut->decoder = TextureDecoder_BC3_To_R8G8B8A8::getInstance();
+				}
 			}
 			break;
 		case Latte::E_GX2SURFFMT::BC4_UNORM:
@@ -4610,7 +4691,8 @@ void VulkanRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, 
 	vkGetImageMemoryRequirements(m_logicalDevice, vkImageObj->m_image, &memRequirements);
 
 	uint32 uploadSize = compressedImageSize;// memRequirements.size;
-	uint32 uploadAlignment = memRequirements.alignment;
+	// buffer offsets of block compressed formats (BC, ASTC) must be multiples of the block size, at most 16 bytes
+	uint32 uploadAlignment = std::max<uint32>((uint32)memRequirements.alignment, 16);
 
 	VKRSynchronizedRingAllocator& vkMemAllocator = memoryManager->getStagingAllocator();
 
@@ -4857,6 +4939,25 @@ void VulkanRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 		if (mipWidth < 4 || mipHeight < 4)
 		{
 			cemuLog_logDebug(LogType::Force, "vkCmdCopyImage - blocked copy for unsupported uncompressed->compressed copy with dst smaller than 4x4");
+			return;
+		}
+	}
+
+	// BC textures transcoded to ASTC 4x4 (bc_transcode) have 16 byte blocks whatever their BC format: copies between one
+	// and an image whose texel size differs (BC1 data copied as R32G32, a 1D or 3D BC texture kept as RGBA8) are invalid
+	// Vulkan copies, they are skipped. A copy with a 16 byte texel format (BC3 data as R32G32B32A32) carries the ASTC
+	// blocks unchanged, like the BC blocks before
+	{
+		auto isAstc4x4 = [](VkFormat f) { return f == VK_FORMAT_ASTC_4x4_UNORM_BLOCK || f == VK_FORMAT_ASTC_4x4_SRGB_BLOCK; };
+		const bool srcAstc = isAstc4x4(srcVkObj->m_format), dstAstc = isAstc4x4(dstVkObj->m_format);
+		if (srcAstc != dstAstc && VkFormatTexelSize(srcAstc ? dstVkObj->m_format : srcVkObj->m_format) != 16)
+		{
+			static bool s_logged = false;
+			if (!s_logged)
+			{
+				s_logged = true;
+				cemuLog_log(LogType::Force, "bc_transcode: copy between ASTC and VkFormat {} skipped (GX2 {:04x} -> {:04x})", (sint32)(srcAstc ? dstVkObj->m_format : srcVkObj->m_format), (uint32)srcVk->format, (uint32)dstVk->format);
+			}
 			return;
 		}
 	}
