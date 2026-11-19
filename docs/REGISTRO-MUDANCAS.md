@@ -105,7 +105,7 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ### BotW: cópia de autodependência só para shaders raros
 
-- **Commit:** `HASH_SDF`.
+- **Commit:** `4edbc727`.
 - **Problema:** BotW no Odin 3 (v39patched, pack 1080p, sombras 200%, FPS++) caiu de 39-43 fps (v0.1, e44b3323) para
   11-19 fps desde `70eb6796` (16/11). Aquele commit copia o anexo de cor inteiro antes de cada draw que o amostra, também
   quando há `VK_EXT_attachment_feedback_loop_layout` (pontos do Paper Mario no Turnip/PanVK). O BotW faz ~330 desses por

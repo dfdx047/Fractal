@@ -87,7 +87,7 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 - **The Legend of Zelda: Breath of the Wild:** fell from 39 to 11 fps in the open world on Turnip (Odin 3, 1080p pack)
   since the Paper Mario fix below: every draw that samples its own color attachment copied the whole attachment first,
   ~330 times per frame. Pixel shaders that do it more than 8 times in a frame go back to the feedback loop; filter passes
-  like Paper Mario's (once per frame) keep the copy (`HASH_SDF`).
+  like Paper Mario's (once per frame) keep the copy (`4edbc727`).
 - **Super Smash Bros. for Wii U:** froze loading a stage on the RP5. `OSMutex` now has priority inheritance, as Cafe OS
   does. Default profile on the system driver: with Turnip the RP5 rebooted at the end of 4 of 4 matches
   (`5568a685`, `614d2531`).
