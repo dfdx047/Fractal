@@ -2056,8 +2056,10 @@ void VulkanRenderer::QueryAvailableFormats()
 	// perf/tuning.txt bc_transcode=1: BC1/BC2/BC3 without native support are transcoded to ASTC 4x4 (same block grid,
 	// 16 bytes per 4x4 block) instead of decoded to RGBA8 (4 bytes per texel). Needs sampling with linear filtering and
 	// transfers on optimal tiling images, for the image kinds created for these textures (2D, arrays, cube maps,
-	// mutable). 1D and 3D textures stay RGBA8 (2D block formats in such images are optional)
-	if (PerfLog::Tunable("bc_transcode", 0) == 1)
+	// mutable). 1D and 3D textures stay RGBA8 (2D block formats in such images are optional). On by default (bc_transcode=0
+	// turns it off): same picture, SM3DW texture memory 272 -> 144 MB and 34.3 -> 35.2 fps on the Mi A3, Batman 37.8 -> 38.8
+	// fps on the POCO, unchanged on the RP5 (19/11)
+	if (PerfLog::Tunable("bc_transcode", 1) == 1)
 	{
 		auto isAstcUsable = [this](VkFormat format) -> bool
 		{

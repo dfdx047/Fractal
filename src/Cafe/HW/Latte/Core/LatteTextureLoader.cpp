@@ -134,15 +134,17 @@ void LatteTextureLoader_loadTextureDataIntoSlice(LatteTexture* hostTexture, sint
 // Workers that decode large textures together with the GPU thread (LatteTextureLoader_DecodeSplit). On GPUs without BCn
 // (Mali, the Adreno blob) every BC texture is decoded on the CPU when it is loaded, on the GPU thread, and a game that
 // streams textures stalls the frame while that runs. Tuning (perf/tuning.txt):
-//   tex_decode_threads     workers besides the GPU thread; 0 = decode on the GPU thread alone (Cemu's behavior),
-//                          -1 = auto (default): the big cores minus the GPU thread and one emulated CPU thread, at most 2
+//   tex_decode_threads     workers besides the GPU thread; 0 (default) = decode on the GPU thread alone (Cemu's behavior),
+//                          -1 = auto: the big cores minus the GPU thread and one emulated CPU thread, at most 2. Off by
+//                          default: no fps change on the Mi A3, RP5, POCO or Odin 3 and the longest decode was shorter on
+//                          the Mi A3 (22 to 11 ms) but longer on the RP5 (Spider-Man 2, 12 to 20 ms) (19/11)
 //   tex_decode_min_texels  images below this size are decoded on the GPU thread alone (default 256x256: about 0.1 ms of
 //                          BC1 to RGBA8 on a POCO X6 Pro core, well above the few microseconds of waking the workers)
 //   cpu_mask_texdecode     CPU mask for the workers (default: the big cores, like the GPU and emulated CPU threads)
 static ParallelForPool* LatteTextureLoader_GetDecodePool()
 {
 	static ParallelForPool* s_pool = []() -> ParallelForPool* {
-		sint32 workers = (sint32)PerfLog::Tunable("tex_decode_threads", -1);
+		sint32 workers = (sint32)PerfLog::Tunable("tex_decode_threads", 0);
 		uint64 mask = (uint64)PerfLog::Tunable("cpu_mask_texdecode", 0);
 		if (mask == 0 && PerfLog::Tunable("big_cores", 1) != 0)
 			mask = GetBigCoreMask();
