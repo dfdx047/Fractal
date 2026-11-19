@@ -318,6 +318,7 @@ between commits (driver, CPU profile), so compare rows only within themselves.
 | CRC32 instructions | POCO | 1.2 → 13.6 GB/s | [`64efc3e5`](https://github.com/dfdx047/Fractal/commit/64efc3e5) |
 | NEON index buffer maximum | POCO, 30000 indices | u16 51.5 → 4.3 µs, u32 35.6 → 8.4 µs | [`bd6af3dc`](https://github.com/dfdx047/Fractal/commit/bd6af3dc) |
 | BCn decoding through a palette, with NEON | POCO, 1024x1024 | BC1 4.0 → 1.5 ms, BC3 5.7 → 2.8, BC4 3.8 → 1.3, BC5 7.0 → 3.2 | [`c4e6b0aa`](https://github.com/dfdx047/Fractal/commit/c4e6b0aa) |
+| BC1-BC3 as ASTC 4x4 on drivers without BCn | Mi A3 (Qualcomm driver), POCO (Mali) | SM3DW textures 272 → 144 MB; Captain Toad 35.9 → 37.2 fps; Batman AC 37.8 → 38.8 fps | [`e7ca709f`](https://github.com/dfdx047/Fractal/commit/e7ca709f) |
 
 ---
 

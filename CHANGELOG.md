@@ -54,6 +54,13 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 
 ### Performance
 
+- **BC1-BC3 textures as ASTC 4x4 on drivers without BCn** (the Qualcomm and Mali drivers): instead of decoding them to
+  RGBA8 (4-8x larger), Fractal transcodes them to ASTC 4x4 on the CPU, at 8 bits per texel (BC1 53-58 dB, BC3 48.5 dB
+  against the original). Super Mario 3D World on the Mi A3: texture memory 272 → 144 MB; Captain Toad 35.9 → 37.2 fps
+  on the Mi A3, Batman: Arkham City 37.8 → 38.8 fps on the POCO. Regression on the RP5, POCO, Mi A3 and Odin 3 with every
+  driver, no crash. `bc_transcode=0` in `perf/tuning.txt` turns it off; BC4/BC5 to EAC (`bc_transcode_etc`) and texture
+  decode workers (`tex_decode_threads`) are in the build, off by default (`e7ca709f`).
+
 - **ARMv8 extensions and NEON:** optional ARMv8 extensions (AES, PMULL, CRC32, LSE atomics, FP16, dot product) are
   detected at runtime, so the build stays ARMv8.0-A for every arm64-v8a phone (`b1078675`). Measured on the POCO X6 Pro
   (Dimensity 8300):

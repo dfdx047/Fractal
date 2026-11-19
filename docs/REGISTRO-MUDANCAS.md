@@ -194,3 +194,18 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   46d21ff0 com o mesmo cache (já curado): 1254 pipelines, 1318 MB, 44,6 fps. Antes: 2,1 GB e morte pelo lmkd em 3 de 5 runs.
 - **Risco:** baixo. Só muda a gravação da entrada da tabela e a leitura de entradas inválidas.
 - **Voltar atrás:** reverter o commit.
+
+### Texturas BC1-BC3 como ASTC 4x4 nos drivers sem BCn (entra na v0.2-beta)
+
+- **Commit:** merge `e7ca709f` (branch `tex-merge`, 51de9091). Decisão do usuário em 19/11 23h40: cache e ASTC na sexta.
+- **O que muda:** nos drivers sem BCn (blob da Qualcomm, Mali), BC1-BC3 viram ASTC 4x4 na CPU em vez de RGBA8.
+  `bc_transcode=1` por padrão; `bc_transcode_etc` (BC4/BC5 → EAC) e `tex_decode_threads` entram desligados.
+- **Testado:** Mi A3 system SM3DW 272 → 144 MB de textura, Captain Toad 35,9 → 37,2 fps (2 de 2), SM3DW igual;
+  POCO Batman 37,8 → 38,8; regressões texdef nos 4 aparelhos (RP5 system e T19, POCO Mali e PanVK, A3 system e T19,
+  Odin 3 v39patched) sem crash. EAC: sem ganho de fps nem de memória no A3 (fica desligado).
+- **Risco:** qualidade das texturas BC1-BC3 nos drivers sem BCn (BC1 53-58 dB, BC3 48,5 dB); tempo de CPU na
+  transcodificação ao carregar.
+- **Voltar atrás:** `bc_transcode=0` em `perf/tuning.txt`, ou mudar o padrão em `VulkanRenderer.cpp`.
+- **Candidata da v0.2-beta:** main `e7ca709f` → `Fractal-trabalho/apks/2026-11-19_fractal-cand-v02-e7ca709f.apk`
+  (0.2-beta, code 4, "Cemu e7ca709f"). Regressão final nos 4 aparelhos em seguida.
+
