@@ -27,6 +27,13 @@ struct VkSupportedFormatInfo_t
 	bool fmt_bc3{};
 	bool fmt_bc4{};
 	bool fmt_bc5{};
+	bool bc_to_astc{}; // BC1-BC3 without fmt_bcN transcoded to ASTC 4x4 instead of decoded to RGBA8 (bc_transcode)
+	// BC textures transcoded to ETC2/EAC where BCn is missing (perf/tuning.txt bc_transcode_etc)
+	bool etc_bc1{};
+	bool etc_bc23{};
+	bool etc_bc4{};
+	bool etc_bc5{};
+	bool etc_3d{}; // 3D images of the ETC2/EAC formats above (otherwise 3D BC textures take the other paths)
 };
 
 struct VkDescriptorSetInfo

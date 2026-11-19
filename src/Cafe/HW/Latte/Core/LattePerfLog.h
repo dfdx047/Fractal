@@ -94,6 +94,12 @@ namespace PerfLog
 	// compile with isRenderThread set, and their nested scopes would leave a stale stage behind)
 	void MarkRenderThread();
 	void TextureReadbackScheduled();
+	// GPU thread: a texture slice was decoded on the CPU (LatteTextureLoader), ns spent in the decoder (split: on the
+	// worker pool too), texels of the slice, bytes the decoder wrote. seconds.csv: tex_decodes, tex_decode_ms,
+	// tex_decode_max_ms (longest single decode: a stutter), tex_decode_ktexels, tex_decode_kb, tex_decodes_split
+	void TextureDecoded(uint64 ns, uint64 texels, uint64 bytes, bool split);
+	// GPU thread: time spent recording the upload of a decoded slice (staging copy included). seconds.csv: tex_upload_ms
+	void TextureUploadRecorded(uint64 ns);
 	void BufferUploadDirect(); // buffer cache upload written straight into GPU memory (no copy, no render pass end)
 	void DrawCall();
 
