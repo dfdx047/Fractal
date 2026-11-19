@@ -123,6 +123,9 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   | correção (2 runs) | 35,3 / 39,1 (média 39,6 / 42,4) | 224 | 20-23 ms |
 
   Mi A3 (system e T19): SM3DW 35,8 / 28,7, Captain Toad 27,1, Shovel Knight 60,0, iguais à candidata.
+- **Regressão da candidata 46d21ff0 (19/11 manhã), sem crash:** Odin 3 v39patched 8/8 (BotW cena do santuário
+  16,0 → 38,8 fps, demais iguais), RP5 T19 13/13 (FIFA 13 também), Mi A3 12/12 em duas passadas, POCO PanVK 19/19
+  com ganho no PanVK: NFS 9,1 → 18,3, RE Revelations 12,7 → 23,1, FIFA 13 35,9 → 46,0, Bayonetta 2 26,6 → 28,1.
 
 ### PGO e ADPF
 
