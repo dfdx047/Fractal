@@ -18,7 +18,8 @@ else
 	CXX=("$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" --target=aarch64-linux-android30 -static)
 	SUFFIX=
 fi
-FLAGS=(-O2 -std=gnu++20 -include "$ROOT/tools/neon_tests/shim.h" -I "$ROOT/src" -I "$ROOT/tools/neon_tests" -Wno-ignored-attributes)
+# stubs/: empty stand-ins for a few headers that would pull in the whole emulator (Latte.h, GX2_Surface.h, tga.h)
+FLAGS=(-O2 -std=gnu++20 -include "$ROOT/tools/neon_tests/shim.h" -I "$ROOT/tools/neon_tests/stubs" -I "$ROOT/src" -I "$ROOT/tools/neon_tests" -Wno-ignored-attributes -pthread)
 for t in "$ROOT"/tools/neon_tests/*_test.cpp; do
 	name="$(basename "$t" .cpp)"
 	if [ "$HOST" = "1" ] && ! grep -q "HOST_TEST_OK" "$t"; then

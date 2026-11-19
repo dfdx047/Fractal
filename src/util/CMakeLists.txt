@@ -52,6 +52,7 @@ add_library(CemuUtil
   MemMapper/MemMapper.h
   SystemInfo/SystemInfo.cpp
   SystemInfo/SystemInfo.h
+  ThreadPool/ParallelForPool.h
   ThreadPool/ThreadPool.h
   tinyxml2/tinyxml2.cpp
   tinyxml2/tinyxml2.h

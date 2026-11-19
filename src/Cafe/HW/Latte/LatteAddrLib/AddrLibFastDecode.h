@@ -2,14 +2,14 @@
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 
 template<typename texelBaseType, int texelBaseTypeCount, bool isEncodeDirection, bool isCompressed>
-void optimizedDecodeLoop_tm04_numSamples1_8x8(LatteTextureLoaderCtx* textureLoader, uint8* outputData, sint32 texelCountX, sint32 texelCountY)
+void optimizedDecodeLoop_tm04_numSamples1_8x8(LatteTextureLoaderCtx* textureLoader, uint8* outputData, sint32 texelCountX, sint32 texelCountY, sint32 rowOffset)
 {
 	uint16* tableBase = textureLoader->computeAddrInfo.microTilePixelIndexTable + ((textureLoader->computeAddrInfo.slice & 7) << 6);
 	for (sint32 yt = 0; yt < texelCountY; yt += 8)
 	{
 		for (sint32 xt = 0; xt < texelCountX; xt += 8)
 		{
-			sint32 baseOffset = LatteAddrLib::ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt, &textureLoader->computeAddrInfo); // this is only 10-20% of execution time
+			sint32 baseOffset = LatteAddrLib::ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt + rowOffset, &textureLoader->computeAddrInfo); // this is only 10-20% of execution time
 			for (sint32 ry = 0; ry < 8; ry++)
 			{
 				sint32 pixelOffset = ((yt + ry)*textureLoader->decodedTexelCountX + (xt)) * (sizeof(texelBaseType)*texelBaseTypeCount);
@@ -64,14 +64,14 @@ void optimizedDecodeLoop_tm04_numSamples1_8x8(LatteTextureLoaderCtx* textureLoad
 }
 
 template<typename texelBaseType, int texelBaseTypeCount, bool isEncodeDirection, bool isCompressed>
-void optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy(LatteTextureLoaderCtx* textureLoader, uint8* outputData, sint32 texelCountX, sint32 texelCountY)
+void optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy(LatteTextureLoaderCtx* textureLoader, uint8* outputData, sint32 texelCountX, sint32 texelCountY, sint32 rowOffset)
 {
 	uint16* tableBase = textureLoader->computeAddrInfo.microTilePixelIndexTable + ((textureLoader->computeAddrInfo.slice & 7) << 6);
 	for (sint32 yt = 0; yt < texelCountY; yt += 8)
 	{
 		for (sint32 xt = 0; xt < texelCountX; xt += 8)
 		{
-			sint32 baseOffset = ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt, &textureLoader->computeAddrInfo); // this is only 10-20% of execution time
+			sint32 baseOffset = ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt + rowOffset, &textureLoader->computeAddrInfo); // this is only 10-20% of execution time
 			for (sint32 ry = 0; ry < 8; ry++)
 			{
 				sint32 pixelOffset = ((yt + ry)*textureLoader->decodedTexelCountX + (xt)) * (sizeof(texelBaseType)*texelBaseTypeCount);
@@ -208,6 +208,8 @@ void optimizedDecodeLoops(LatteTextureLoaderCtx* textureLoader, uint8* outputDat
 		texelCountX = textureLoader->width;
 		texelCountY = textureLoader->height;
 	}
+	// first row of the image this call decodes, in elements (row ranges, see LatteTextureLoaderCtx::rowOffset)
+	const sint32 rowOffset = isCompressed ? textureLoader->rowOffset / 4 : textureLoader->rowOffset;
 
 	if (textureLoader->tileMode == Latte::E_HWTILEMODE::TM_2D_TILED_THIN1 && textureLoader->computeAddrInfo.numSamples == 1)
 	{
@@ -222,19 +224,19 @@ void optimizedDecodeLoops(LatteTextureLoaderCtx* textureLoader, uint8* outputDat
 		// unsure if this variant is faster:
 		if (textureLoader->computeAddrInfo.microTileType == 0 && (sizeof(texelBaseType)*texelBaseTypeCount) == 8)
 		{
-			optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY);
+			optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY, rowOffset);
 		}
 		else if (textureLoader->computeAddrInfo.microTileType == 0 && (sizeof(texelBaseType)*texelBaseTypeCount) == 4)
 		{
-			optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY);
+			optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY, rowOffset);
 		}
 		else if (textureLoader->computeAddrInfo.microTileType == 0 && (sizeof(texelBaseType)*texelBaseTypeCount) == 1)
 		{
-			optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY);
+			optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY, rowOffset);
 		}
 		else
 		{
-			optimizedDecodeLoop_tm04_numSamples1_8x8<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY);
+			optimizedDecodeLoop_tm04_numSamples1_8x8<texelBaseType, texelBaseTypeCount, isEncodeDirection, isCompressed>(textureLoader, outputData, texelCountX, texelCountY, rowOffset);
 		}
 		// the above code only handles full 8x8 pixel blocks, for uneven sizes we need to process the remaining pixels here
 		// right border
@@ -244,7 +246,7 @@ void optimizedDecodeLoops(LatteTextureLoaderCtx* textureLoader, uint8* outputDat
 			texelBaseType* blockOutput = (texelBaseType*)(outputData + pixelOffset);
 			for (sint32 xt = texelCountX; xt < texelCountOrigX; xt++)
 			{
-				sint32 offset = ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt, &textureLoader->computeAddrInfo);
+				sint32 offset = ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt + rowOffset, &textureLoader->computeAddrInfo);
 				uint8* blockData = textureLoader->inputData + offset;
 				// copy as-is
 				if (texelBaseTypeCount == 1)
@@ -278,7 +280,7 @@ void optimizedDecodeLoops(LatteTextureLoaderCtx* textureLoader, uint8* outputDat
 			texelBaseType* blockOutput = (texelBaseType*)(outputData + pixelOffset);
 			for (sint32 xt = 0; xt < texelCountOrigX; xt++)
 			{
-				sint32 offset = ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt, &textureLoader->computeAddrInfo);
+				sint32 offset = ComputeSurfaceAddrFromCoordMacroTiledCached_tm04_sample1(xt, yt + rowOffset, &textureLoader->computeAddrInfo);
 				uint8* blockData = textureLoader->inputData + offset;
 				// copy as-is
 				if (texelBaseTypeCount == 1)
@@ -309,12 +311,12 @@ void optimizedDecodeLoops(LatteTextureLoaderCtx* textureLoader, uint8* outputDat
 	else if (textureLoader->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
 	{
 		// optimized handler for linear textures
-		uint32 sliceOffset = textureLoader->sliceIndex * textureLoader->height * textureLoader->pitch;
+		uint32 sliceOffset = textureLoader->sliceIndex * textureLoader->fullHeight * textureLoader->pitch;
 		for (sint32 y = 0; y < texelCountY; y++)
 		{
 			sint32 pixelOffset = (y*textureLoader->decodedTexelCountX) * (sizeof(texelBaseType)*texelBaseTypeCount);
 			texelBaseType* blockOutput = (texelBaseType*)(outputData + pixelOffset);
-			texelBaseType* blockData = (texelBaseType*)(textureLoader->inputData + (textureLoader->pitch * y + sliceOffset) * (sizeof(texelBaseType)*texelBaseTypeCount));
+			texelBaseType* blockData = (texelBaseType*)(textureLoader->inputData + (textureLoader->pitch * (y + rowOffset) + sliceOffset) * (sizeof(texelBaseType)*texelBaseTypeCount));
 			for (sint32 x = 0; x < texelCountX; x++)
 			{
 				// copy as-is

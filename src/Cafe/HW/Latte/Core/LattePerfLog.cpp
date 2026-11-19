@@ -79,6 +79,7 @@ namespace PerfLog
 		std::atomic<uint64> depthPasses{}, depthPassesUnused{}, depthPassesReadOnly{}, depthStoreSkipped{}, depthStoreRestarts{};
 		std::atomic<uint64> renderPassRestarts[(size_t)RenderPassEnd::Count]{};
 		std::atomic<uint64> textureReadbacks{};
+		std::atomic<uint64> texDecodes{}, texDecodeNs{}, texDecodeMaxNs{}, texDecodeTexels{}, texDecodeBytes{}, texDecodesSplit{}, texUploadNs{};
 	};
 	static uint64 s_gpuLastEndNs = 0; // only touched by the render thread
 
@@ -536,6 +537,7 @@ namespace PerfLog
 				   "pipelines,pipelines_sync,pipelines_failed,pipeline_ms,pipeline_sync_ms,gpu_busy_ms,render_passes,draws,"
 				   "rpe_other,rpe_fbo,rpe_buffer_upload,rpe_buffer_copy,rpe_texture_upload,rpe_clear,rpe_copy,rpe_readback,rpe_query,rpe_submit,rpe_self_dependency,buffer_uploads_direct,barriers,gpu_wait_ms,readbacks,selfdep_kept,selfdep_other_subresource,selfdep_color,selfdep_depth,selfdep_why_drawwrites,selfdep_why_passwrote,selfdep_why_otherbarrier,selfdep_why_vertex,upload_fb_blocked,upload_fb_current,upload_fb_inflight,buffer_renames,buffer_rename_kb,rename_skip_streamout,rename_skip_size,rename_skip_heap,rename_skip_busy,copies_via_buffer,uploads_prologue,depth_passes,depth_unused,depth_readonly,depth_store_skipped,depth_store_restarts,drawdone,gw_other_ms,gw_present_ms,gw_readback_ms,gw_query_ms,gw_flush_ms,gw_pool_ms,gw_uniform_ms,gw_linearcopy_ms,"
 				   "rs_other,rs_fbo,rs_buffer_upload,rs_buffer_copy,rs_texture_upload,rs_clear,rs_copy,rs_readback,rs_query,rs_submit,rs_self_dependency,wait_timestamp_ms,wait_flip_ms,wait_vsync_ms,wait_cp_fence_ms,"
+				   "tex_decodes,tex_decode_ms,tex_decode_max_ms,tex_decode_ktexels,tex_decode_kb,tex_decodes_split,tex_upload_ms,"
 				   "cpu_process_pct,rss_mb" << freqHeader << "\n";
 		threads << "t_s,tid,name,cpu_pct\n";
 		frames << "t_ms,ft_ms\n";
@@ -711,6 +713,9 @@ namespace PerfLog
 				passEnds += fmt::format("{},", c.exchange(0));
 			for (auto& c : s_counters.guestWaitNs)
 				passEnds += fmt::format("{:.1f},", c.exchange(0) / 1e6);
+			passEnds += fmt::format("{},{:.2f},{:.2f},{},{},{},{:.2f},", s_counters.texDecodes.exchange(0), s_counters.texDecodeNs.exchange(0) / 1e6,
+									s_counters.texDecodeMaxNs.exchange(0) / 1e6, s_counters.texDecodeTexels.exchange(0) / 1000, s_counters.texDecodeBytes.exchange(0) / 1024,
+									s_counters.texDecodesSplit.exchange(0), s_counters.texUploadNs.exchange(0) / 1e6);
 			seconds << fmt::format("{:.0f},{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{},{},{},{:.1f},{},{},{},{:.1f},{:.1f},{:.1f},{},{},{}{:.1f},{}{}{}\n",
 								   tS, n, fps, ftAvg, ftP99, low1, ftMax,
 								   shaders, shadersCached, shadersFailed, shaderUs / 1000.0,
@@ -802,6 +807,8 @@ namespace PerfLog
 		s_counters.pipelineBarriers = 0;
 		s_counters.gpuWaitNs = 0;
 		s_counters.textureReadbacks = 0;
+		for (auto* c : {&s_counters.texDecodes, &s_counters.texDecodeNs, &s_counters.texDecodeMaxNs, &s_counters.texDecodeTexels, &s_counters.texDecodeBytes, &s_counters.texDecodesSplit, &s_counters.texUploadNs})
+			*c = 0;
 		s_counters.selfDependencyKept = 0;
 		s_counters.selfDependencyOtherSubresource = 0;
 		s_counters.selfDependencyColor = 0;
@@ -1013,6 +1020,27 @@ namespace PerfLog
 	{
 		if (IsActive())
 			s_counters.textureReadbacks.fetch_add(1, std::memory_order_relaxed);
+	}
+
+	void TextureDecoded(uint64 ns, uint64 texels, uint64 bytes, bool split)
+	{
+		if (!IsActive())
+			return;
+		s_counters.texDecodes.fetch_add(1, std::memory_order_relaxed);
+		s_counters.texDecodeNs.fetch_add(ns, std::memory_order_relaxed);
+		s_counters.texDecodeTexels.fetch_add(texels, std::memory_order_relaxed);
+		s_counters.texDecodeBytes.fetch_add(bytes, std::memory_order_relaxed);
+		if (split)
+			s_counters.texDecodesSplit.fetch_add(1, std::memory_order_relaxed);
+		uint64 prevMax = s_counters.texDecodeMaxNs.load(std::memory_order_relaxed);
+		while (ns > prevMax && !s_counters.texDecodeMaxNs.compare_exchange_weak(prevMax, ns, std::memory_order_relaxed))
+			;
+	}
+
+	void TextureUploadRecorded(uint64 ns)
+	{
+		if (IsActive())
+			s_counters.texUploadNs.fetch_add(ns, std::memory_order_relaxed);
 	}
 
 	void SelfDependencyOtherSubresource()
