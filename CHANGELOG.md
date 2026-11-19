@@ -73,10 +73,10 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 - **Profile guided optimization (PGO):** the native library is built with a profile collected on the Odin 3, the POCO
   X6 Pro and the Mi A3 (19 games, `src/android/pgo/fractal.profdata`). Watch Dogs on the Odin 3: 51.4 → 56.1 fps (1% low
   41 → 45); Bayonetta 2 and AC III on the POCO slightly up; Retroid Pocket 5 and Mi A3 unchanged. `FRACTAL_PGO=off`
-  builds without it, `FRACTAL_PGO=generate` builds the instrumented library that collects a new profile (`PGOHASH`).
+  builds without it, `FRACTAL_PGO=generate` builds the instrumented library that collects a new profile (`0893c8b5`).
 - **Android performance hints (ADPF):** a hint session for the emulated CPU cores and the GPU thread that reports each
   frame's work to the CPU governor; off by default because it cost fps on the POCO (Bayonetta 2 33.2 → 26.3) and 1% lows
-  on the Odin 3, and saved 7% power in Watch Dogs. `adpf=1` in `perf/tuning.txt` turns it on (`PGOHASH`).
+  on the Odin 3, and saved 7% power in Watch Dogs. `adpf=1` in `perf/tuning.txt` turns it on (`0893c8b5`).
 - **Recompiler:** `addo`/`subfo`/`addco`/`subfco`, `mfxer`/`mtxer`, `fcmpo`, `bdnzf`-style branches, conditional far
   branches, `subfme`, `divwo`/`divwuo` and `bcl 20` no longer send functions to the interpreter, and a huge contiguous
   function is translated in windows instead of whole for every new entry. Teslagrad on the Mi A3: host code 118 → 39 MB,

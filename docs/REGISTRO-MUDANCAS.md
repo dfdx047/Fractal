@@ -105,7 +105,7 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ### PGO e ADPF
 
-- **Commit:** `PGOHASH`.
+- **Commit:** `0893c8b5`.
 - **PGO:** `FRACTAL_PGO` no CMake (`generate`, caminho de um `.profdata`, ou vazio) e no Gradle (variável de ambiente;
   sem ela usa `src/android/pgo/fractal.profdata` se existir). A build instrumentada grava `files/pgo/*.profraw` a cada
   30 s. Perfil atual: Odin 3 (8 jogos, v39patched), POCO (8 jogos, driver da Mali), Mi A3 (3 jogos, system e T19),
