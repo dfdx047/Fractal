@@ -2,12 +2,15 @@
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "WindowSystem.h"
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
+#include "util/helpers/PerformanceHint.h"
 
 performanceMonitor_t performanceMonitor{};
 
 void LattePerformanceMonitor_frameEnd()
 {
 	PerfLog::FramePresented();
+	PerfHint::FramePresented(LatteGPUState.sharedArea ? (uint32)LatteGPUState.sharedArea->swapInterval : 1);
 	// per-frame stats
 	performanceMonitor.gpuTime_shaderCreate.frameFinished();
 	performanceMonitor.gpuTime_frameTime.frameFinished();

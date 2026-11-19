@@ -22,6 +22,7 @@ add_library(CemuUtil
   helpers/fixedSizeList.h
   helpers/fspinlock.h
   helpers/helpers.cpp
+  helpers/PerformanceHint.cpp
   helpers/helpers.h
   helpers/MapAdaptor.h
   helpers/MemoryPool.h

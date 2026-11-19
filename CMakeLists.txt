@@ -67,6 +67,24 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
 
+# profile guided optimization of the emulator's own code (not the vcpkg dependencies, which vcpkg builds separately):
+# FRACTAL_PGO=generate builds an instrumented library that writes perf/../pgo/*.profraw while games run (see
+# src/Cafe/HW/Latte/Core/LattePerfLog.cpp); FRACTAL_PGO=<path to .profdata> optimizes with the merged profile
+set(FRACTAL_PGO "" CACHE STRING "PGO: empty (off), generate, or the path of a merged .profdata")
+if(FRACTAL_PGO STREQUAL "generate")
+	add_compile_options(-fprofile-generate)
+	add_link_options(-fprofile-generate)
+	add_compile_definitions(FRACTAL_PGO_GENERATE=1)
+	message(STATUS "PGO: instrumented build")
+elseif(FRACTAL_PGO)
+	if(NOT EXISTS "${FRACTAL_PGO}")
+		message(FATAL_ERROR "PGO profile not found: ${FRACTAL_PGO}")
+	endif()
+	add_compile_options(-fprofile-use=${FRACTAL_PGO} -Wno-profile-instr-unprofiled -Wno-profile-instr-out-of-date -Wno-profile-instr-missing)
+	add_link_options(-fprofile-use=${FRACTAL_PGO})
+	message(STATUS "PGO: optimized with ${FRACTAL_PGO}")
+endif()
+
 option(ENABLE_LIBUSB "Build with libusb support" ON)
 
 if (ENABLE_LIBUSB)

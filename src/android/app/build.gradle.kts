@@ -128,6 +128,17 @@ android {
                     "-DVCPKG_TARGET_ANDROID=ON",
                     "-DBUNDLE_SPEEX=ON",
                 )
+                // PGO (see the root CMakeLists.txt): FRACTAL_PGO=generate for the instrumented build, FRACTAL_PGO=off to
+                // build without a profile; otherwise the profile in src/android/pgo/fractal.profdata is used when present
+                val pgo = System.getenv("FRACTAL_PGO")?.trim().orEmpty()
+                val pgoProfile = rootProject.file("pgo/fractal.profdata")
+                when {
+                    pgo == "generate" -> arguments.add("-DFRACTAL_PGO=generate")
+                    pgo == "off" -> arguments.add("-DFRACTAL_PGO=")
+                    pgo.isNotEmpty() -> arguments.add("-DFRACTAL_PGO=" + file(pgo).absolutePath)
+                    pgoProfile.exists() -> arguments.add("-DFRACTAL_PGO=" + pgoProfile.absolutePath)
+                    else -> arguments.add("-DFRACTAL_PGO=")
+                }
                 if (versionMajor != null && versionMinor != null) {
                     arguments.addAll(
                         arrayOf(

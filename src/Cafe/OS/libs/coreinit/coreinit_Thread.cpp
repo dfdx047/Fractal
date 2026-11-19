@@ -1,4 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
+#include "util/helpers/PerformanceHint.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
@@ -1347,6 +1348,9 @@ namespace coreinit
 	{
 		bool isMainCore = g_isMulticoreMode == false || __OSAssignedCoreIndex() == 1;
 		sint32 coreIndex = __OSAssignedCoreIndex();
+		// time in this loop is idle time of the host thread for the ADPF hint session (util/helpers/PerformanceHint.h)
+		const PerfHint::Role hintRole = (PerfHint::Role)std::clamp<sint32>(__OSAssignedCoreIndex(), 0, 2);
+		uint64 idleSince = PerfHint::NowNs();
 		__OSUnlockScheduler();
 		while (true)
 		{
@@ -1357,7 +1361,9 @@ namespace coreinit
 				if (nextThread)
 				{
 					cemu_assert_debug(nextThread->state == OSThread_t::THREAD_STATE::STATE_RUNNING);
+					PerfHint::AddIdleNs(hintRole, PerfHint::NowNs() - idleSince);
 					__OSSwitchToThreadFiber(nextThread, coreIndex);
+					idleSince = PerfHint::NowNs();
 				}
 				__OSUnlockScheduler();
 			}
@@ -1510,6 +1516,7 @@ namespace coreinit
 			if (mask && PinCurrentThreadToCpuMask(mask))
 				cemuLog_log(LogType::Force, "OSSched[core={}]: pinned to CPU mask {:#x}", __OSAssignedCoreIndex(), mask);
 		}
+		PerfHint::RegisterCurrentThread((PerfHint::Role)std::clamp<sint32>(__OSAssignedCoreIndex(), 0, 2));
 
 		ConfigureHostFloatingPointEnvironment();
 

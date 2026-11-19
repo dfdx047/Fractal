@@ -1,3 +1,4 @@
+#include "util/helpers/PerformanceHint.h"
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h" // for write gatherer and special state. Get rid of dependency
@@ -205,12 +206,19 @@ uint32 LatteCP_readU32Deprc()
 	static const uint32 kSpinRoundsBeforeSleep = (uint32)PerfLog::Tunable("gpu_spin_rounds", 32); // 0: never sleep
 	static const uint32 kMaxSleepUs = (uint32)PerfLog::Tunable("gpu_max_sleep_us", 1000);
 	uint32 idleRounds = 0;
+	uint64 idleSince = 0; // ADPF hint session: time without commands is idle time of the GPU thread
 	// no display list active
 	while (true)
 	{
 		uint32 cmdWord;
 		if ( TCL::TCLGPUReadRBWord(cmdWord) )
+		{
+			if (idleSince)
+				PerfHint::AddIdleNs(PerfHint::Role::Gpu, PerfHint::NowNs() - idleSince);
 			return cmdWord;
+		}
+		if (!idleSince)
+			idleSince = PerfHint::NowNs();
 
 		const uint32 wakeToken = TCL::TCLGPUWakeToken(); // taken before checking the work sources, so no wake-up is lost
 		g_renderer->NotifyLatteCommandProcessorIdle(); // let the renderer know in case it wants to flush any commands
@@ -223,7 +231,10 @@ uint32 LatteCP_readU32Deprc()
 		LatteThread_HandleOSScreen(); // check if new frame was presented via OSScreen API
 
 		if ( TCL::TCLGPUReadRBWord(cmdWord) )
+		{
+			PerfHint::AddIdleNs(PerfHint::Role::Gpu, PerfHint::NowNs() - idleSince);
 			return cmdWord;
+		}
 		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 
@@ -579,7 +590,9 @@ static void LatteCP_waitForMemory(uint32 physAddr, uint32 fenceValue, uint32 fen
 		GX2::GX2Command_NoteGpuEvent(s_cpLastWait.pending ? 'R' : 'W', memory_physicalToVirtual(physAddr), _swapEndianU32(*fencePtr));
 	s_cpWaitKind = 0;
 	performanceMonitor.gpuTime_fenceTime.endMeasuring();
-	PerfLog::GuestWaited(PerfLog::GuestWait::CpFence, std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - fenceWaitStart).count());
+	const uint64 fenceWaitNs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - fenceWaitStart).count();
+	PerfHint::AddIdleNs(PerfHint::Role::Gpu, fenceWaitNs); // waiting for the CPU side
+	PerfLog::GuestWaited(PerfLog::GuestWait::CpFence, fenceWaitNs);
 }
 
 // Called before each packet that has an effect (entering an indirect buffer has none; a memory write calls it right before

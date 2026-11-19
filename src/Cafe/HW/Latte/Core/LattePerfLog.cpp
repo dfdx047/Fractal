@@ -13,6 +13,7 @@
 #include "config/CemuConfig.h"
 #include "Common/version.h"
 #include "util/helpers/helpers.h"
+#include "util/helpers/PerformanceHint.h"
 #include "Cafe/OS/libs/gx2/GX2_Command.h"
 
 #include <condition_variable>
@@ -27,6 +28,11 @@
 void PPCRecompilerAArch64Gen_reportInterfaceFunctionsToPerfLog(); // BackendAArch64.cpp
 
 std::string LatteCP_DescribeWait(); // LatteCommandProcessor.cpp
+
+#ifdef FRACTAL_PGO_GENERATE
+extern "C" int __llvm_profile_write_file(void);
+extern "C" void __llvm_profile_set_filename(const char*);
+#endif
 
 namespace PerfLog
 {
@@ -716,8 +722,42 @@ namespace PerfLog
 		}
 	}
 
+#ifdef FRACTAL_PGO_GENERATE
+	// instrumented build (FRACTAL_PGO=generate): the counters go to <user data>/pgo/fractal-<pid>.profraw every 30 s and at
+	// the end of a game, since Android usually kills the emulation process without running its exit handlers
+	static void PgoWriteProfile()
+	{
+		static std::mutex s_pgoMutex;
+		std::scoped_lock lock(s_pgoMutex);
+		__llvm_profile_write_file();
+	}
+
+	static void PgoStart()
+	{
+		static std::once_flag s_once;
+		std::call_once(s_once, []() {
+			const fs::path dir = ActiveSettings::GetUserDataPath("pgo");
+			std::error_code ec;
+			fs::create_directories(dir, ec);
+			static const std::string s_file = _pathToUtf8(dir / "fractal-%p.profraw");
+			__llvm_profile_set_filename(s_file.c_str());
+			std::thread([]() {
+				while (true)
+				{
+					std::this_thread::sleep_for(std::chrono::seconds(30));
+					PgoWriteProfile();
+				}
+			}).detach();
+			cemuLog_log(LogType::Force, "PGO: instrumented build, profile written to {}", s_file);
+		});
+	}
+#endif
+
 	void SessionStart()
 	{
+#ifdef FRACTAL_PGO_GENERATE
+		PgoStart();
+#endif
 		if (IsActive())
 			return;
 		s_full = GetConfig().perf_log.GetValue();
@@ -817,6 +857,10 @@ namespace PerfLog
 
 	void SessionEnd()
 	{
+#ifdef FRACTAL_PGO_GENERATE
+		PgoWriteProfile();
+#endif
+		PerfHint::Reset();
 		if (!IsActive())
 			return;
 		s_active = false;
@@ -958,6 +1002,7 @@ namespace PerfLog
 
 	void GpuWait(uint64 ns)
 	{
+		PerfHint::AddIdleNs(PerfHint::Role::Gpu, ns); // the GPU thread waits for the host GPU: idle for the CPU hint session
 		if (!IsActive())
 			return;
 		s_counters.gpuWaitNs.fetch_add(ns, std::memory_order_relaxed);

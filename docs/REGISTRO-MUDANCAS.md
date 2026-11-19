@@ -101,6 +101,37 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 - **Risco:** +92 MB de memória da GPU nos aparelhos de 6 GB ou mais. Mi A3 (4 GB) e outros abaixo de 5 GB não mudam.
 - **Voltar atrás:** `buffer_cache_mb=164`, ou reverter o commit.
 
+## 2026-11-19
+
+### PGO e ADPF
+
+- **Commit:** `PGOHASH`.
+- **PGO:** `FRACTAL_PGO` no CMake (`generate`, caminho de um `.profdata`, ou vazio) e no Gradle (variável de ambiente;
+  sem ela usa `src/android/pgo/fractal.profdata` se existir). A build instrumentada grava `files/pgo/*.profraw` a cada
+  30 s. Perfil atual: Odin 3 (8 jogos, v39patched), POCO (8 jogos, driver da Mali), Mi A3 (3 jogos, system e T19),
+  merge com o `llvm-profdata` do NDK 29. Para refazer: build com `FRACTAL_PGO=generate`, rodar os jogos, puxar os
+  `.profraw`, `llvm-profdata merge -o src/android/pgo/fractal.profdata *.profraw`.
+- **ADPF (`util/helpers/PerformanceHint.*`):** sessão de dica com os 3 núcleos emulados e a LatteThread; o trabalho
+  de cada quadro é o intervalo menos o tempo ocioso da thread mais ocupada (laço ocioso do núcleo, espera de comandos e
+  de fence da GPU). Desligado por padrão (`adpf=1` liga); com ele desligado só sobra a contagem de tempo ocioso.
+- **Testado (A/B, mesma cena, 19/11 madrugada):**
+
+  | Aparelho, jogo | normal, ADPF ligado | normal, ADPF desligado | PGO |
+  |---|---|---|---|
+  | Odin 3, WD (150-900 s) | 53,6 fps / 9,5 W | 51,4-51,8 fps / 10,1 W | 56,1 fps |
+  | Odin 3, AC IV (1% low) | 46-50 | 57 | - |
+  | POCO, Bayonetta 2 | 26,3 | 33,2 | 33,5 |
+  | POCO, AC III | 32,3 | 33,2 | 33,5 |
+  | RP5, Spider-Man 2 / NG3 | 39,2-39,7 / 34,5 | 39,7-39,8 / 34,2-35,0 | 39,8-39,9 / 34,2-34,3 |
+  | Mi A3, SM3DW / Captain Toad | 32,5-33,0 / 26,6-27,2 | 32,5-33,1 / 27,2 | 32,6 / 26,9 |
+
+  Sem crash em nenhuma das builds (coleta e A/B). Coluna PGO do RP5 e do A3: perfil só do Odin 3.
+- **Risco:** o perfil envelhece conforme o código muda (funções novas ficam sem perfil, sem erro). Refazer antes de
+  cada versão grande.
+- **Voltar atrás:** `FRACTAL_PGO=off` na build, ou apagar `src/android/pgo/fractal.profdata`.
+
+## 2026-11-18 (cont.)
+
 ### Tentativas descartadas
 
 - **Espera ociosa do núcleo 1 sem travas**

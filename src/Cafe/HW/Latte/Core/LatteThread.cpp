@@ -1,3 +1,4 @@
+#include "util/helpers/PerformanceHint.h"
 #include "Cafe/OS/libs/TCL/TCL.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
@@ -131,6 +132,7 @@ int Latte_ThreadEntry()
 		if (mask && PinCurrentThreadToCpuMask(mask))
 			cemuLog_log(LogType::Force, "LatteThread: pinned to CPU mask {:#x}", mask);
 	}
+	PerfHint::RegisterCurrentThread(PerfHint::Role::Gpu);
 	sint32 w,h;
 	WindowSystem::GetWindowPhysSize(w,h);
 
