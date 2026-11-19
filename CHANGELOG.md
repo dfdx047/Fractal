@@ -84,6 +84,11 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 
 ### Fixed
 
+- **Shader and pipeline caches:** when a cache file grew, the relocated file table's own entry was written at the old
+  table offset, into the new table, leaving an entry that claimed ~4 GB. Reading it took 2 GB of RAM at boot (Super
+  Mario 3D World on the Mi A3 was killed by Android) and made every later pipeline read as corrupted (1247 of 1252
+  recompiled). The entry is now written with the table, and damaged entries are dropped when the cache opens, so caches
+  that were already damaged heal themselves. The same bug is in Cemu upstream (`9b3dde81`).
 - **The Legend of Zelda: Breath of the Wild:** fell from 39 to 11 fps in the open world on Turnip (Odin 3, 1080p pack)
   since the Paper Mario fix below: every draw that samples its own color attachment copied the whole attachment first,
   ~330 times per frame. Pixel shaders that do it more than 8 times in a frame go back to the feedback loop; filter passes

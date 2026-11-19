@@ -176,3 +176,21 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 - Dois aparelhos não podem usar o mesmo nome de teste no mesmo dia: a pasta é a mesma e um sobrescreve o outro.
 - Um run "sem crash" não basta: confira os prints. O FIFA em single-core deu 60 fps sem crash com a tela toda preta.
 - Depois de copiar um `.wua`, confira o `md5sum`. Uma cópia feita com pouco espaço saiu corrompida sem erro do adb.
+
+### Cache de shaders e pipelines: tabela realocada gravava a própria entrada no lugar errado
+
+- **Commit:** `9b3dde81` (`src/Cemu/FileCache/FileCache.cpp`).
+- **Problema:** SM3DW no Mi A3 (T19) passou a morrer no boot pelo lmkd (RSS 2,1 GB em 2 s), com qualquer build,
+  inclusive a 46d21ff0. O `0005000010145c00_vkpipeline.bin` tinha a entrada 5 com 4,27 GB: os bytes eram a entrada da
+  própria tabela (nomes EFEF…/FEFE…, offset 751093, tamanho 41984) gravada 170 bytes dentro da tabela nova. Em
+  `fileCache_updateFiletable`, `_addFileInternal` grava a tabela nova e depois a entrada dela em `this->fileTableOffset`,
+  que ainda é o da tabela velha; como a velha foi liberada, a nova pode cobri-la. Ler a entrada alocava 4 GB, e o stream
+  ficava em erro: 1247 de 1252 pipelines saíam "corrupted or has unknown version". O bug vem do Cemu upstream.
+- **Correção:** a entrada da tabela não é mais regravada à parte (os dados da tabela já a contêm). Ao abrir, entradas
+  que passam do fim do arquivo são descartadas (log "dropped N damaged file table entries"); leituras além do fim falham;
+  tamanho descomprimido acima de 64 MB é recusado.
+- **Testado (Mi A3, T19, cache estragado guardado em `Fractal-trabalho/backups/a3_sm3dw_cache_2026-11-19`):** com a
+  correção, 1 entrada descartada, RSS máximo 1320 MB, 1230 pipelines carregadas no boot, 45,3 e 44,6 fps. Depois a
+  46d21ff0 com o mesmo cache (já curado): 1254 pipelines, 1318 MB, 44,6 fps. Antes: 2,1 GB e morte pelo lmkd em 3 de 5 runs.
+- **Risco:** baixo. Só muda a gravação da entrada da tabela e a leitura de entradas inválidas.
+- **Voltar atrás:** reverter o commit.
