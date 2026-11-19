@@ -103,6 +103,27 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ## 2026-11-19
 
+### BotW: cópia de autodependência só para shaders raros
+
+- **Commit:** `HASH_SDF`.
+- **Problema:** BotW no Odin 3 (v39patched, pack 1080p, sombras 200%, FPS++) caiu de 39-43 fps (v0.1, e44b3323) para
+  11-19 fps desde `70eb6796` (16/11). Aquele commit copia o anexo de cor inteiro antes de cada draw que o amostra, também
+  quando há `VK_EXT_attachment_feedback_loop_layout` (pontos do Paper Mario no Turnip/PanVK). O BotW faz ~330 desses por
+  quadro no mundo aberto: 543 passes/quadro contra 216, GPU 84 ms/quadro a 1016 MHz contra 20 ms a 661 MHz.
+- **Correção:** com feedback loop disponível, um pixel shader visto mais de `selfdep_copy_max_per_frame` (padrão 8) vezes
+  num quadro passa a usar o feedback loop pelo resto da sessão (evento `selfdep_feedback` no events.txt). Paper Mario
+  (16/11, PanVK): 1 cópia por quadro, continua copiando.
+- **Testado (Odin 3, save do usuário no Platô, 300-370 s):**
+
+  | Build | fps | passes/quadro | GPU/quadro |
+  |---|---|---|---|
+  | v0.1 e44b3323 | 39,4 | 227 | 20,1 ms |
+  | 4719a412 | 10,8-10,9 | 543 | 84 ms |
+  | 4719a412 + `selfdep_copy=0` | 40,5 | 216 | 19,6 ms |
+  | correção (2 runs) | 35,3 / 39,1 (média 39,6 / 42,4) | 224 | 20-23 ms |
+
+  Mi A3 (system e T19): SM3DW 35,8 / 28,7, Captain Toad 27,1, Shovel Knight 60,0, iguais à candidata.
+
 ### PGO e ADPF
 
 - **Commit:** `0893c8b5`.

@@ -1527,6 +1527,39 @@ VkImageAspectFlags VulkanRenderer::draw_getCurrentWriteAspects(CachedFBOVk* fboV
 // garbage in blocks, which the bloom spreads into colored squares over the particles. Copy the sampled subresources to a
 // host only texture outside the render pass and bind a pixel descriptor set that samples the copy. perf/tuning.txt
 // selfdep_copy=0 turns this off (old behaviour: split the pass and sample the attachment)
+//
+// A pixel shader whose self-dependent draws come many times per frame is a per-object effect that reads the texel it writes,
+// which the feedback loop handles. Copying the whole attachment before each of them is what costs: Breath of the Wild issues
+// ~330 per frame in the open world, and on the Odin 3 (Turnip) it fell from 39 to 11 fps at 1080p. With the feedback loop,
+// a shader seen more than selfdep_copy_max_per_frame (default 8) times in one frame stops being copied for the rest of the
+// session; filter passes that read the neighbours (Paper Mario Color Splash) run once or twice a frame and keep the copy
+static bool SelfDepCopyTooFrequent(uint64 shaderHash)
+{
+	struct Entry { uint32 frame; uint32 count; bool frequent; };
+	static std::unordered_map<uint64, Entry> s_shaders;
+	static const uint32 s_maxPerFrame = (uint32)std::max<sint64>(1, PerfLog::Tunable("selfdep_copy_max_per_frame", 8));
+	const uint32 frame = LatteGPUState.frameCounter;
+	auto it = s_shaders.find(shaderHash);
+	if (it == s_shaders.end())
+		it = s_shaders.emplace(shaderHash, Entry{frame, 0, false}).first;
+	Entry& e = it->second;
+	if (e.frequent)
+		return true;
+	if (e.frame != frame)
+	{
+		e.frame = frame;
+		e.count = 0;
+	}
+	if (++e.count > s_maxPerFrame)
+	{
+		e.frequent = true;
+		PerfLog::Event(fmt::format("selfdep_feedback {:016x}", shaderHash),
+			fmt::format("pixel shader samples its own attachment in more than {} draws per frame: feedback loop instead of a copy", s_maxPerFrame));
+		return true;
+	}
+	return false;
+}
+
 bool VulkanRenderer::draw_selfDependencyCopy(CachedFBOVk* fboVk, uint8 sampledColorAttachments)
 {
 	static const bool s_enabled = PerfLog::Tunable("selfdep_copy", 1) != 0;
@@ -1539,6 +1572,8 @@ bool VulkanRenderer::draw_selfDependencyCopy(CachedFBOVk* fboVk, uint8 sampledCo
 		return false; // only sampled: the regular split and barrier handle it
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (!pixelShader)
+		return false;
+	if (UseAttachmentFeedbackLoop() && SelfDepCopyTooFrequent(pixelShader->baseHash))
 		return false;
 	auto overlaps = [](const LatteTextureView* a, const LatteTextureView* b) -> bool
 	{
