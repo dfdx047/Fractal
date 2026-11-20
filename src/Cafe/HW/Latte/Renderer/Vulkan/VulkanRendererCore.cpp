@@ -1530,9 +1530,11 @@ VkImageAspectFlags VulkanRenderer::draw_getCurrentWriteAspects(CachedFBOVk* fboV
 //
 // A pixel shader whose self-dependent draws come many times per frame is a per-object effect that reads the texel it writes,
 // which the feedback loop handles. Copying the whole attachment before each of them is what costs: Breath of the Wild issues
-// ~330 per frame in the open world, and on the Odin 3 (Turnip) it fell from 39 to 11 fps at 1080p. With the feedback loop,
-// a shader seen more than selfdep_copy_max_per_frame (default 8) times in one frame stops being copied for the rest of the
-// session; filter passes that read the neighbours (Paper Mario Color Splash) run once or twice a frame and keep the copy
+// ~330 per frame in the open world, and on the Odin 3 (Turnip) it fell from 39 to 11 fps at 1080p. A shader seen more than
+// selfdep_copy_max_per_frame (default 8) times in one frame stops being copied for the rest of the session: with the
+// feedback loop it uses the loop, without it the pass is split as before the copy existed. Filter passes that read the
+// neighbours (Paper Mario Color Splash, Assassin's Creed IV's bloom) run a few times a frame and keep the copy. Without the
+// feedback loop (Mali, Qualcomm's driver) BotW copied on every one of those draws too: POCO X6 Pro 5.8 -> 16.8 fps
 static bool SelfDepCopyTooFrequent(uint64 shaderHash)
 {
 	struct Entry { uint32 frame; uint32 count; bool frequent; };
@@ -1554,7 +1556,7 @@ static bool SelfDepCopyTooFrequent(uint64 shaderHash)
 	{
 		e.frequent = true;
 		PerfLog::Event(fmt::format("selfdep_feedback {:016x}", shaderHash),
-			fmt::format("pixel shader samples its own attachment in more than {} draws per frame: feedback loop instead of a copy", s_maxPerFrame));
+			fmt::format("pixel shader samples its own attachment in more than {} draws per frame: no copy (feedback loop or pass split)", s_maxPerFrame));
 		return true;
 	}
 	return false;
@@ -1573,7 +1575,7 @@ bool VulkanRenderer::draw_selfDependencyCopy(CachedFBOVk* fboVk, uint8 sampledCo
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (!pixelShader)
 		return false;
-	if (UseAttachmentFeedbackLoop() && SelfDepCopyTooFrequent(pixelShader->baseHash))
+	if (SelfDepCopyTooFrequent(pixelShader->baseHash))
 		return false;
 	auto overlaps = [](const LatteTextureView* a, const LatteTextureView* b) -> bool
 	{
