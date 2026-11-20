@@ -209,3 +209,14 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 - **Candidata da v0.2-beta:** main `e7ca709f` → `Fractal-trabalho/apks/2026-11-19_fractal-cand-v02-e7ca709f.apk`
   (0.2-beta, code 4, "Cemu e7ca709f"). Regressão final nos 4 aparelhos em seguida.
 
+### Streamout no fim do render pass e limpezas que pulam páginas zeradas (entram na v0.2-beta)
+
+- **Commits:** `451ecf49` (so_defer_copies, branch so-defer) e `e4ae9d51` (lazy_zero, branch lazy-zero), squash no main.
+  Decisão do usuário em 20/11: os dois entram no vídeo/lançamento de sexta.
+- **Testado** (build integ3 = árvore idêntica a este main): POCO Mali 19/19 e PanVK; RP5 T19 e system; Odin 3 8/8 +
+  5 extras; Mi A3 regressão e 2 rodadas de estabilidade. BO2 POCO Mali 17,2 → 34,6, PanVK 3,0 → 15,7; MK8 A3 RAM
+  1410 → 997 MB; fps igual com lazy_zero (SM3DW 47, BotW 53).
+- **Risco aberto:** FF Showdown travou 1 vez no RP5 T19 aos 60 s (thread de vídeo) com integ3; repetição com
+  lazy_zero 1 e 0 em andamento. MK8 no Mi A3 ainda fecha no driver da Qualcomm ao carregar a pista (agora sem lmkd).
+- **Voltar atrás:** `so_defer_copies=0` / `lazy_zero=0` em `perf/tuning.txt`.
+

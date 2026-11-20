@@ -323,6 +323,8 @@ condiciones cambian entre commits (driver, perfil de CPU), así que compara cada
 | Máximo del index buffer con NEON | POCO, 30000 índices | u16 51,5 → 4,3 µs, u32 35,6 → 8,4 µs | [`bd6af3dc`](https://github.com/dfdx047/Fractal/commit/bd6af3dc) |
 | Decodificación BCn con paleta, con NEON | POCO, 1024x1024 | BC1 4,0 → 1,5 ms, BC3 5,7 → 2,8, BC4 3,8 → 1,3, BC5 7,0 → 3,2 | [`c4e6b0aa`](https://github.com/dfdx047/Fractal/commit/c4e6b0aa) |
 | BC1-BC3 como ASTC 4x4 en drivers sin BCn | Mi A3 (driver de Qualcomm), POCO (Mali) | Texturas de SM3DW 272 → 144 MB; Captain Toad 35,9 → 37,2 fps; Batman AC 37,8 → 38,8 fps | [`e7ca709f`](https://github.com/dfdx047/Fractal/commit/e7ca709f) |
+| Copias de streamout al final del render pass | POCO (Mali, PanVK) | BO2 17,2 → 34,6 fps (Mali), 3,0 → 15,7 (PanVK); Sonic Racing 20,8 → 22,7 | [`451ecf49`](https://github.com/dfdx047/Fractal/commit/451ecf49) |
+| Las limpiezas de memoria saltan páginas ya en cero | Mi A3 | RAM de MK8 1410 → 997 MB a los 100 s; WD salta 512 MB de limpiezas | [`e4ae9d51`](https://github.com/dfdx047/Fractal/commit/e4ae9d51) |
 
 ---
 

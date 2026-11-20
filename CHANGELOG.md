@@ -54,6 +54,14 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
 
 ### Performance
 
+- **Streamout copies at the end of the render pass:** games that use streamout (transform feedback) no longer end the
+  render pass on every draw that writes it; the copies to the buffer cache wait for the pass to end. Call of Duty: Black
+  Ops II on the POCO: 17.2 → 34.6 fps on the Mali driver, 3.0 → 15.7 on PanVK; Sonic & All-Stars Racing 20.8 → 22.7.
+  `so_defer_copies=0` in `perf/tuning.txt` turns it off (`451ecf49`).
+- **Less RAM from guest memory clears:** clears of 16 KB or more skip 4 KB pages that are already zero, so Android does
+  not have to back them with real memory. Mario Kart 8 on the Mi A3: 1410 → 997 MB of RAM 100 s in; Watch Dogs skips
+  512 MB of clears. No fps change. `lazy_zero=0` turns it off (`e4ae9d51`).
+
 - **BC1-BC3 textures as ASTC 4x4 on drivers without BCn** (the Qualcomm and Mali drivers): instead of decoding them to
   RGBA8 (4-8x larger), Fractal transcodes them to ASTC 4x4 on the CPU, at 8 bits per texel (BC1 53-58 dB, BC3 48.5 dB
   against the original). Super Mario 3D World on the Mi A3: texture memory 272 → 144 MB; Captain Toad 35.9 → 37.2 fps
