@@ -929,6 +929,18 @@ private:
 		uint32 baseInstance;
 	}m_streamoutState{};
 
+	// streamout results copied from the ring buffer into the buffer cache after the render pass instead of after each
+	// streamout draw (streamout_deferCopies)
+	struct PendingStreamoutCopy { uint32 src; uint32 dst; uint32 size; };
+	std::vector<PendingStreamoutCopy> m_pendingSoCopies;
+	bool m_soCopiesFlushing = false;
+	struct SoReadRange { uint32 offset; uint32 size; };
+	SoReadRange m_soReadVB[Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS]{}; // buffer cache ranges bound for the draws
+	SoReadRange m_soReadUB[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT][16]{};
+	bool streamout_deferCopies() const;
+	void streamout_flushPendingCopies();
+	void streamout_flushPendingCopiesIfRead();
+
 	struct
 	{
 		VkQueryPool queryPool{VK_NULL_HANDLE};

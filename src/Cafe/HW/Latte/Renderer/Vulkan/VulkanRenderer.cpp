@@ -1,6 +1,7 @@
 #include <unordered_set>
 #include "Cafe/HW/Latte/Core/LattePerfLog.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/FrameGen/LosslessDll.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
@@ -5201,6 +5202,9 @@ uint64 VulkanRenderer::GenUniqueId()
 
 void VulkanRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize)
 {
+	// the ring buffer wrapped: the deferred copies may still read the part this draw writes
+	if (!m_pendingSoCopies.empty() && (uint32)ringBufferOffset < m_pendingSoCopies.back().src + m_pendingSoCopies.back().size)
+		draw_endRenderPass(PerfLog::RenderPassEnd::BufferCopy);
 	VkDeviceSize tfBufferOffset = ringBufferOffset;
 	m_streamoutState.buffer[bufferIndex].enabled = true;
 	m_streamoutState.buffer[bufferIndex].ringBufferOffset = ringBufferOffset;
@@ -5340,6 +5344,7 @@ void VulkanRenderer::buffer_bindVertexBuffers(std::span<BindBufferParam> binding
 	VkBuffer buffer = m_bufferCache;
 	for (auto& binding : bindings)
 	{
+		m_soReadVB[binding.index] = {binding.bindOffset, binding.bindSize};
 		if (m_state.currentVertexBinding[binding.index].offset == binding.bindOffset)
 			continue;
 		m_state.currentVertexBinding[binding.index].offset = binding.bindOffset;
@@ -5352,6 +5357,7 @@ void VulkanRenderer::buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffe
 {
 	cemu_assert_debug(bufferIndex < Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS);
 	m_state.currentVertexBinding[bufferIndex].offset = 0xFFFFFFFF;
+	m_soReadVB[bufferIndex] = {0, 0}; // not the buffer cache
 	VkBuffer attrBuffer = fixedBuffer;
 	VkDeviceSize attrOffset = offset;
 	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
@@ -5382,6 +5388,7 @@ void VulkanRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType,
 {
 	cemu_assert_debug(!m_useHostMemoryForCache);
 	cemu_assert_debug(bufferIndex < 16);
+	m_soReadUB[(int)shaderType & 3][bufferIndex & 15] = {offset, size};
 	switch (shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
@@ -5529,8 +5536,114 @@ void VulkanRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32
 	barrier_sequentializeTransfer();
 }
 
+// Streamout draws (GPU skinning in CoD Black Ops II: ~300 per frame) write the ring buffer, and a copy moves each result into
+// the buffer cache. A copy can't be recorded inside a render pass, so each one ended the pass, and on a tiler that stores and
+// reloads the attachments every time (BO2 on the POCO X6 Pro Mali: 350 passes per frame, 12 fps). The copies are now
+// recorded after the render pass ends, all together. Until then nothing may read their destination: a draw that binds an
+// overlapping vertex or uniform range ends the pass first (streamout_flushPendingCopiesIfRead), a streamout draw that
+// reuses ring buffer memory a pending copy still reads does too (streamout_setupXfbBuffer), and every other buffer cache
+// write (upload, copy) or readback ends the pass before it records anything. perf/tuning.txt so_defer_copies=0 turns it off
+bool VulkanRenderer::streamout_deferCopies() const
+{
+	static const bool s_enabled = PerfLog::Tunable("so_defer_copies", 1) != 0;
+	return s_enabled;
+}
+
+void VulkanRenderer::streamout_flushPendingCopies()
+{
+	if (m_pendingSoCopies.empty() || m_soCopiesFlushing)
+		return;
+	cemu_assert_debug(!m_state.activeRenderpassFBO);
+	m_soCopiesFlushing = true;
+	// the streamout writes (transform feedback or storage buffer) before the copies read the ring buffer, and every
+	// earlier access to the destinations before the copies write them
+	VkMemoryBarrier mb{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+	mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | (m_xfbNative ? VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT : 0);
+	mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+	{ PassProfileBarrierBegin("so:pre"); vkCmdPipelineBarrier(m_state.currentCommandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &mb, 0, nullptr, 0, nullptr); PassProfileBarrierEnd(); }
+	// one copy command per group of regions whose destinations don't overlap (overlapping regions of one command are
+	// undefined), in the order the streamout draws ran
+	std::vector<VkBufferCopy> regions;
+	regions.reserve(m_pendingSoCopies.size());
+	auto emit = [&]() {
+		if (regions.empty())
+			return;
+		{ PassProfileBarrierBegin("copybuf"); vkCmdCopyBuffer(m_state.currentCommandBuffer, m_xfbRingBuffer, m_bufferCache, (uint32)regions.size(), regions.data()); PassProfileBarrierEnd(); }
+		regions.clear();
+	};
+	for (const auto& c : m_pendingSoCopies)
+	{
+		for (const auto& r : regions)
+		{
+			if ((uint64)c.dst < r.dstOffset + r.size && r.dstOffset < (uint64)c.dst + c.size)
+			{
+				emit();
+				barrier_sequentializeTransfer();
+				break;
+			}
+		}
+		regions.push_back(VkBufferCopy{c.src, c.dst, c.size});
+	}
+	emit();
+	barrier_sequentializeTransfer();
+	PerfLog::StreamoutCopiesDeferred((uint32)m_pendingSoCopies.size());
+	m_pendingSoCopies.clear();
+	m_soCopiesFlushing = false;
+}
+
+void VulkanRenderer::streamout_flushPendingCopiesIfRead()
+{
+	if (m_pendingSoCopies.empty())
+		return;
+	auto pendingWrite = [this](const SoReadRange& r) -> bool {
+		if (r.size == 0)
+			return false;
+		for (const auto& c : m_pendingSoCopies)
+			if ((uint64)r.offset < (uint64)c.dst + c.size && (uint64)c.dst < (uint64)r.offset + r.size)
+				return true;
+		return false;
+	};
+	bool read = false;
+	if (LatteFetchShader* fetchShader = LatteSHRC_GetActiveFetchShader())
+	{
+		for (auto& bufferGroup : fetchShader->bufferGroups)
+		{
+			if (pendingWrite(m_soReadVB[bufferGroup.attributeBufferIndex & (Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS - 1)]))
+			{
+				read = true;
+				break;
+			}
+		}
+	}
+	const std::pair<LatteDecompilerShader*, int> stages[] = {
+		{LatteSHRC_GetActiveVertexShader(), VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX},
+		{LatteSHRC_GetActiveGeometryShader(), VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY},
+		{LatteSHRC_GetActivePixelShader(), VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT}};
+	for (auto& [shader, stage] : stages)
+	{
+		if (read || !shader || shader->uniformMode != LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
+			continue;
+		for (const auto& buf : shader->list_quickBufferList)
+		{
+			if (pendingWrite(m_soReadUB[stage & 3][buf.index & 15]))
+			{
+				read = true;
+				break;
+			}
+		}
+	}
+	if (read)
+		draw_endRenderPass(PerfLog::RenderPassEnd::BufferCopy); // records the copies
+}
+
 void VulkanRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
+	if (!m_useHostMemoryForCache && m_state.activeRenderpassFBO && !m_soCopiesFlushing && streamout_deferCopies())
+	{
+		bufferCache_markInUse(dstOffset, size); // a host write to this range must not happen before the copy
+		m_pendingSoCopies.push_back({srcOffset, dstOffset, size});
+		return;
+	}
 	draw_endRenderPass(PerfLog::RenderPassEnd::BufferCopy);
 
 	VkBuffer dstBuffer;

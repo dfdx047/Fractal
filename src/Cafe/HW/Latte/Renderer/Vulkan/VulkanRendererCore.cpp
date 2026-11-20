@@ -1712,6 +1712,7 @@ void VulkanRenderer::draw_endRenderPass(PerfLog::RenderPassEnd reason)
 	}
 	sync_RenderPassStoreTextures(m_state.activeRenderpassFBO);
 	m_state.activeRenderpassFBO = nullptr;
+	streamout_flushPendingCopies();
 }
 
 // Defined in the Common renderer
@@ -2117,6 +2118,7 @@ void VulkanRenderer::draw_execute_first(uint32 baseVertex, uint32 baseInstance, 
 	m_state.activeGeometryDS = geometryDS;
 	m_state.descriptorSetsChanged = true;
 
+	streamout_flushPendingCopiesIfRead();
 	draw_setRenderPass();
 	// the set that samples the copies is for this draw only (draw_selfDependencyCopy); all sets are bound below anyway
 	if (m_state.selfDepCopyPixelDS)
@@ -2327,6 +2329,7 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 		cemu_assert(false); // should never happen unless draw_prepareDescriptorSets can fail?
 	}
 
+	streamout_flushPendingCopiesIfRead();
 	draw_setRenderPass();
 
 	if (m_state.currentPipeline != vkObjPipeline->GetPipeline())

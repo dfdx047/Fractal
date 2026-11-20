@@ -101,6 +101,7 @@ namespace PerfLog
 	// GPU thread: time spent recording the upload of a decoded slice (staging copy included). seconds.csv: tex_upload_ms
 	void TextureUploadRecorded(uint64 ns);
 	void BufferUploadDirect(); // buffer cache upload written straight into GPU memory (no copy, no render pass end)
+	void StreamoutCopiesDeferred(uint32 count); // streamout results copied into the buffer cache after a render pass, together
 	void DrawCall();
 
 	// PPC recompiler, for profiling (simpleperf samples in JIT code are mapped back to PPC functions):
