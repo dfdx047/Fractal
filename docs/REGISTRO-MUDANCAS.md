@@ -220,3 +220,19 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   lazy_zero 1 e 0 em andamento. MK8 no Mi A3 ainda fecha no driver da Qualcomm ao carregar a pista (agora sem lmkd).
 - **Voltar atrás:** `so_defer_copies=0` / `lazy_zero=0` em `perf/tuning.txt`.
 
+
+### Fast & Furious: Showdown: as corridas do motor do Hot Wheels (entra na v0.2-beta)
+
+- **Commits:** `a71c3399` e `8355f2d5` (branch v02-fffix, fast-forward no main em 20/11).
+- **Sintoma:** travava no carregamento depois da cena de abertura (~60 s): RP5 T19 2 runs em 20, POCO Mali 1 em 20.
+  Aparecia mais com lazy_zero ligado (3 de 17 contra 0 de 36), mas o lazy_zero só mudava o tempo: a regressão não
+  pegou porque `regressao.py` contava só crashes (agora marca FREEZE).
+- **Causa:** o jogo usa o motor do Hot Wheels (Firebrand). Dump das threads no travamento: principal em
+  `wuGraphicsCore::syncOnCommand`, renderização em `tick`, cada uma esperando o evento da outra: as duas corridas
+  corrigidas no Hot Wheels (`dfde2b64`). `syncOnCommand` é idêntico palavra por palavra; `tick` foi compilado com outros
+  registradores. As chamadas a imports continuam `bl` neste jogo (o loader só troca por `bla` quando o destino está fora
+  do alcance), por isso as entradas novas usam `kAnyCall` (bl ou bla). As entradas do Hot Wheels não mudaram.
+- **Testado:** 20 de 20 runs sem travar (RP5 T19 10, POCO Mali 10), "Title fix applied" 6 vezes em cada; o jogo avança
+  (prints de 120 e 240 s diferentes). Regressão completa da build nos 4 aparelhos.
+- **Lição:** ao corrigir um jogo por title fix, procurar o mesmo código nos jogos do mesmo estúdio/motor.
+- **Voltar atrás:** reverter os dois commits (não há chave em `perf/tuning.txt`).

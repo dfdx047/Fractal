@@ -154,6 +154,10 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   (`b6cf7c8b`).
 - **Hot Wheels: World's Best Driver:** freeze on a load (RP5 1 run in 3): two races in the game's render thread
   handshake; RP5 8 of 8 and POCO 5 of 5 runs without a freeze (`dfde2b64`).
+- **Fast & Furious: Showdown:** froze on the load after the opening cutscene (RP5 Turnip T19 2 runs in 20, POCO Mali 1
+  in 20). The game uses the Hot Wheels engine and has the same two races between its main and render threads; the same
+  title fix, adapted to its code (its import calls stay `bl`, so the patterns accept `bl` or `bla`). 20 of 20 runs
+  without a freeze on the RP5 and the POCO (`a71c3399`, `8355f2d5`).
 - **The Binding of Isaac: Rebirth (USA):** 13 to 43 thousand broken GPU command buffers a run (Cemu's state reload
   workaround only knew the other release) and a crash on the POCO; now none, 58.7 fps on the RP5. The picture is still
   black, see known issues (`226c1868`).
@@ -186,8 +190,12 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   in multi-core the audio thread mixes before the output channels exist (single-core never gets past the black boot
   screen). The pitch and the stadium are black on every GPU (Adreno, Mali, Turnip, PanVK); official Cemu shows a black
   screen too (cemu-project/Cemu#1907).
-- **Mario Kart 8 on phones with 3-4 GB of RAM:** on the Mi A3 (3.6 GB) the race load ends the game: Android kills it for
-  memory on the device's driver, and Turnip T19 restarts the phone.
+- **Mario Kart 8 on the Mi A3 (Adreno 610):** the game closes when a race loads: a GPU page fault (address 0x80) right
+  after the first shadow map sample, then a crash inside the Qualcomm driver; Turnip T19 restarts the phone. Not memory
+  any more (lazy_zero and ASTC took care of that) and not new: the test build of 19/11 does it too. The RP5 runs it
+  normally.
+- **Watch Dogs:** the first room comes out overexposed (bright instead of dark) in about half of the runs on the Odin 3,
+  with the same build and settings; the results come in streaks, so something carries over between runs.
 - **Shader caches from another phone:** Watch Dogs on the AYN Odin 3 (Adreno 830) closed at boot with a pipeline cache
   made on another device (the Turnip Gen8 and Qualcomm compilers crash on some of its pipelines); with its own cache it
   plays (900 s, 45-60 fps).
