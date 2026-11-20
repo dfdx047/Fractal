@@ -9,6 +9,9 @@ void memory_enableOverlayArena();
 void memory_enableHBLELFCodeArea();
 uint32 memory_getVirtualOffsetFromPointer(void* ptr);
 uint8* memory_getPointerFromVirtualOffset(uint32 virtualOffset);
+// memset for guest memory that leaves 4 KB pages that already hold the value alone (value 0 only): untouched guest RAM
+// is the zero page until written, so clearing it would make it resident for nothing
+void memory_setLazy(void* dst, uint8 value, size_t size);
 uint8* memory_getPointerFromVirtualOffsetAllowNull(uint32 virtualOffset);
 
 uint8* memory_getPointerFromPhysicalOffset(uint32 physicalOffset);

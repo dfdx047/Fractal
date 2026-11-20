@@ -346,7 +346,7 @@ namespace coreinit
 		}
 		_blockHeapDebugVerifyLinkOrder(blockHeapHead);
 		// todo: Get fill value via MEMGetFillValForHeap
-		memset(memory_getPointerFromVirtualOffset(allocationAddress), 0x00, size);
+		memory_setLazy(memory_getPointerFromVirtualOffset(allocationAddress), 0x00, size);
 		return 0;
 	}
 

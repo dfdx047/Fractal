@@ -4,6 +4,7 @@
 #include "WindowSystem.h"
 #include "util/MemMapper/MemMapper.h"
 #include "config/ActiveSettings.h"
+#include "Cafe/HW/Latte/Core/LattePerfLog.h"
 
 uint8* memory_base = NULL; // base address of the reserved 4GB space
 uint8* memory_elfCodeArena = NULL;
@@ -541,4 +542,48 @@ namespace MMU
 	}
 
 
+}
+
+static bool _memory_pageIsZero(const uint8* page)
+{
+	const uint64* p = (const uint64*)page;
+	for (size_t i = 0; i < 4096 / 8; i += 8)
+	{
+		if ((p[i] | p[i + 1] | p[i + 2] | p[i + 3] | p[i + 4] | p[i + 5] | p[i + 6] | p[i + 7]) != 0)
+			return false;
+	}
+	return true;
+}
+
+void memory_setLazy(void* dst, uint8 value, size_t size)
+{
+	static const bool s_lazy = PerfLog::Tunable("lazy_zero", 1) != 0; // perf/tuning.txt
+	if (value != 0 || size < 4 * 4096 || !s_lazy)
+	{
+		memset(dst, value, size);
+		return;
+	}
+	static std::atomic<uint64> s_skipped{0};
+	static std::atomic<uint64> s_nextLog{256ull << 20};
+	uint8* p = (uint8*)dst;
+	uint8* end = p + size;
+	uint8* firstPage = (uint8*)(((uintptr_t)p + 4095) & ~(uintptr_t)4095);
+	uint8* lastPage = (uint8*)((uintptr_t)end & ~(uintptr_t)4095);
+	memset(p, 0, firstPage - p);
+	uint64 skipped = 0;
+	for (uint8* page = firstPage; page < lastPage; page += 4096)
+	{
+		if (_memory_pageIsZero(page))
+			skipped += 4096;
+		else
+			memset(page, 0, 4096);
+	}
+	memset(lastPage, 0, end - lastPage);
+	if (skipped)
+	{
+		uint64 total = s_skipped.fetch_add(skipped) + skipped;
+		uint64 next = s_nextLog.load();
+		if (total >= next && s_nextLog.compare_exchange_strong(next, next + (256ull << 20)))
+			cemuLog_log(LogType::Force, "Guest memory clears: {} MB left untouched (already zero)", total >> 20);
+	}
 }

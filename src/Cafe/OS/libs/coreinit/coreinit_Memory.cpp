@@ -52,7 +52,7 @@ namespace coreinit
 
 		if (blocks > 0)
 		{
-			memset(memory_getPointerFromVirtualOffset(alignedAddr), 0x00, blocks * 32);
+			memory_setLazy(memory_getPointerFromVirtualOffset(alignedAddr), 0x00, blocks * 32);
 			LatteBufferCache_notifyDCFlush(alignedAddr, blocks * 32);
 		}
 	}
@@ -71,7 +71,7 @@ namespace coreinit
 
 	void* coreinit_memset(void* dst, uint32 value, uint32 size)
 	{
-		memset(dst, value, size);
+		memory_setLazy(dst, (uint8)value, size);
 		GuestWatch::OnWriteHLE(memory_getVirtualOffsetFromPointer(dst), size, value, 'S');
 		return dst;
 	}
@@ -121,7 +121,7 @@ namespace coreinit
 
 	void* OSBlockSet(MEMPTR<void> dst, uint32 value, uint32 size)
 	{
-		memset(dst.GetPtr(), value&0xFF, size);
+		memory_setLazy(dst.GetPtr(), (uint8)(value&0xFF), size);
 		GuestWatch::OnWriteHLE(dst.GetMPTR(), size, value, 'O');
 		return dst.GetPtr();
 	}

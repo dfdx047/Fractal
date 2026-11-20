@@ -108,7 +108,7 @@ namespace coreinit
 		// fill block
 		if (heap->HasOptionClear())
 		{
-			memset(currentBlock, 0, heap->blockSize);
+			memory_setLazy(currentBlock, 0, heap->blockSize);
 		}
 		else if (heap->HasOptionFill())
 		{

@@ -111,7 +111,7 @@ namespace coreinit
 			auto prevHead = frmHeap->allocationHead;
 			frmHeap->allocationHead = allocStart + size;
 			if (frmHeap->HasOptionClear())
-				memset(prevHead.GetPtr(), 0, frmHeap->allocationHead.GetMPTR() - prevHead.GetMPTR());
+				memory_setLazy(prevHead.GetPtr(), 0, frmHeap->allocationHead.GetMPTR() - prevHead.GetMPTR());
 			return MEMPTR<void>(allocStart).GetPtr();
 		}
 		return nullptr;
@@ -127,7 +127,7 @@ namespace coreinit
 			auto prevTail = frmHeap->allocationTail;
 			frmHeap->allocationTail = allocStart;
 			if (frmHeap->HasOptionClear())
-				memset(frmHeap->allocationTail.GetPtr(), 0, prevTail.GetMPTR() - frmHeap->allocationTail.GetMPTR());
+				memory_setLazy(frmHeap->allocationTail.GetPtr(), 0, prevTail.GetMPTR() - frmHeap->allocationTail.GetMPTR());
 			return MEMPTR<void>(allocStart).GetPtr();
 		}
 		return nullptr;

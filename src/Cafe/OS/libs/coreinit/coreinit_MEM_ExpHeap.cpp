@@ -255,7 +255,7 @@ void* _MEMExpHeap_AllocUsedBlockFromFreeBlock(MBlockChain2_t* blockChain, MBlock
 	uint8 options = heap->flags;
 	if (HAS_FLAG(options, MEM_HEAP_OPTION_CLEAR))
 	{
-		memset((void*)freeRegion.end, 0x00, newRegion.start - freeRegion.end);
+		memory_setLazy((void*)freeRegion.end, 0x00, newRegion.start - freeRegion.end);
 	}
 	else if (HAS_FLAG(options, MEM_HEAP_OPTION_FILL))
 	{
@@ -609,7 +609,7 @@ uint32 MEMResizeForMBlockExpHeap(MEMHeapHandle heap, void* memBlock, uint32 size
 					}
 
 					if (HAS_FLAG(heap->flags, MEM_HEAP_OPTION_CLEAR))
-						memset((void*)oldStart, 0x00, region.start - oldStart);
+						memory_setLazy((void*)oldStart, 0x00, region.start - oldStart);
 					else if (HAS_FLAG(heap->flags, MEM_HEAP_OPTION_FILL))
 					{
 						const uint32 fillValue = MEMGetFillValForHeap(HEAP_FILL_TYPE::ON_ALLOC);
