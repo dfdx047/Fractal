@@ -1979,10 +1979,12 @@ static const std::vector<RPLTitleFix>& RPLLoader_TitleFixes()
 		//   lwz r10,6464(r30); mulli r28,r10,36; addi r12,r30,6548; add r3,r12,r28; bl OSSignalEvent; ...
 		//   mr r11,r28; li r28,0; add r3,r29,r11; bl OSWaitEvent
 		// Two entries because a call ("bla" once the imports are linked) sits between the replaced words; the second only
-		// matches after the first applied.
+		// matches after the first applied. Fast & Furious: Showdown (same engine, Firebrand) has the same function word for
+		// word: it froze on the load after the opening cutscene (RP5 T19 2 runs in 20, POCO Mali 1 in 20, both threads in
+		// the waits described here)
 		{
-			"Hot Wheels World's Best Driver: render command index read twice (1/2)",
-			{0x0005000010143300ull},
+			"Hot Wheels World's Best Driver / Fast & Furious: Showdown: render command index read twice (1/2)",
+			{0x0005000010143300ull, 0x0005000010111600ull},
 			{
 				0x815E1940, 0x1C0A0024, 0x399E1994, 0x7C6C0214, kAnyBranchAbs, 0x387E19DC, kAnyBranchAbs,
 				0x819E1940, 0x1D6C0024, 0x7C7D5A14, kAnyBranchAbs,
@@ -1991,8 +1993,8 @@ static const std::vector<RPLTitleFix>& RPLLoader_TitleFixes()
 			{0x1F8A0024, 0x399E1994, 0x7C6CE214},
 		},
 		{
-			"Hot Wheels World's Best Driver: render command index read twice (2/2)",
-			{0x0005000010143300ull},
+			"Hot Wheels World's Best Driver / Fast & Furious: Showdown: render command index read twice (2/2)",
+			{0x0005000010143300ull, 0x0005000010111600ull},
 			{
 				0x815E1940, 0x1F8A0024, 0x399E1994, 0x7C6CE214, kAnyBranchAbs, 0x387E19DC, kAnyBranchAbs,
 				0x819E1940, 0x1D6C0024, 0x7C7D5A14, kAnyBranchAbs,
@@ -2051,6 +2053,52 @@ static const std::vector<RPLTitleFix>& RPLLoader_TitleFixes()
 			},
 			4,
 			{0x48000014, 0x1C060024, 0x399F194C, 0x7C6C0214, 0x4BFFFFEC, 0x80DF1B54, 0x60000000},
+		},
+		// Fast & Furious: Showdown, wuGraphicsCore::tick: the same two flip sites as Hot Wheels above, compiled with other
+		// registers (old index in r5 at the first site, r11 at the second; smaller stack frame):
+		//   lwz r5,6464(r31); xori r4,r5,1; stw r4,6464(r31); b 1f; 2: bla OSSignalEvent; b 3f
+		//   1: mulli r4,r5,36; addi r12,r31,6476; add r3,r12,r4; b 2b; 3: lmw r21,404(r1)
+		{
+			"Fast & Furious: Showdown: buffer index flipped after the done signal (1/4)",
+			{0x0005000010111600ull},
+			{
+				0x80BF1940, 0x1C850024, 0x399F194C, 0x7C6C2214, kAnyBranchAbs, 0x80DF1940, 0x38A60001, 0x28050002,
+				0x40800038, 0x90BF1940, 0xBAA10194,
+			},
+			1,
+			{0x68A40001, 0x909F1940, 0x4800000C},
+		},
+		{
+			"Fast & Furious: Showdown: buffer index flipped after the done signal (2/4)",
+			{0x0005000010111600ull},
+			{
+				0x80BF1940, 0x68A40001, 0x909F1940, 0x4800000C, kAnyBranchAbs, 0x80DF1940, 0x38A60001, 0x28050002,
+				0x40800038, 0x90BF1940, 0xBAA10194,
+			},
+			5,
+			{0x48000014, 0x1C850024, 0x399F194C, 0x7C6C2214, 0x4BFFFFEC},
+		},
+		//   xori r5,r11,1; stw r5,6464(r31); b 1f; 2: bla OSSignalEvent; b 3f
+		//   1: mulli r9,r11,36; addi r8,r31,6476; add r3,r8,r9; b 2b; 3: lwz r11,6996(r31); nop; ...
+		{
+			"Fast & Furious: Showdown: buffer index flipped after the done signal (3/4)",
+			{0x0005000010111600ull},
+			{
+				0x1D2B0024, 0x391F194C, 0x7C684A14, kAnyBranchAbs, 0x815F1940, 0x38AA0001, 0x28050002, 0x817F1B54,
+				0x41800008, 0x7FC5F378, 0x90BF1940, 0x396B0001, 0x917F1B54, 0xBAA10194,
+			},
+			0,
+			{0x69650001, 0x90BF1940, 0x4800000C},
+		},
+		{
+			"Fast & Furious: Showdown: buffer index flipped after the done signal (4/4)",
+			{0x0005000010111600ull},
+			{
+				0x69650001, 0x90BF1940, 0x4800000C, kAnyBranchAbs, 0x815F1940, 0x38AA0001, 0x28050002, 0x817F1B54,
+				0x41800008, 0x7FC5F378, 0x90BF1940, 0x396B0001, 0x917F1B54, 0xBAA10194,
+			},
+			4,
+			{0x48000014, 0x1D2B0024, 0x391F194C, 0x7C684A14, 0x4BFFFFEC, 0x817F1B54, 0x60000000},
 		},
 	};
 	return s_fixes;
