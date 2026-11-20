@@ -262,3 +262,23 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   (`preferredDisplayModeId`); desligada, volta para a escolha do sistema. Também ao ligar/desligar no menu do jogo.
 - **Testado:** pedido do modo conferido no POCO (`dumpsys window`: ligada `preferredDisplayMode=3` e voto de 120 Hz no `dumpsys display`; desligada, nenhum pedido); POCO e Odin 3 já ficam em 120 Hz nos jogos, então o
   ganho só aparece em aparelhos como o do usuário da issue.
+
+## 2026-11-20
+
+### Laço ocioso do núcleo principal dorme quando há folga
+
+- **Commit:** `2b5b0dca`.
+- **O que muda:** o laço ocioso do núcleo principal emulado (núcleo 1, modo multicore) girava sempre, lendo o relógio e
+  testando as travas. Agora ele dorme até o próximo alarme (no máximo `idle_wait_max_us`, padrão 500 µs) quando o núcleo
+  ficou ocioso em pelo menos `idle_sleep_min_pct` (80 %) da última janela de 250 ms **e** este trecho ocioso já dura
+  `idle_spin_us` (2 ms). Um alarme novo que vence antes do prazo acorda o laço (`idle_alarm_wake`, padrão 1).
+- **Testado (A/B alternado, `tools/perf` + `idle_sum.py`, 60 fps):**
+  - Odin 3, Splatoon: girando sempre 6,7 W, CPU 144 %, núcleo 1 99 %, 1 % low 56,5; padrão novo 4,8 W, 120 %, 78 %,
+    54,6.
+  - RP5 e POCO, SM3DW (duas rodadas cada): não dorme, CPU e 1 % low iguais a girar sempre. A3, SM3DW (43 fps, limitado
+    pela CPU): igual.
+  - Valores descartados: folga de 60 % ou 75 % derruba o 1 % low do SM3DW no RP5 (51 → 39-45, sem o teto de clock
+    mudar, então é a latência de acordar); giro de 200 µs custa o 1 % low do Splatoon (51,5).
+- **Risco:** jogo com folga entre 80 e 100 % mas sensível à latência de acordar (sincronização fina entre threads em
+  núcleos diferentes) pode perder 1 % low. Sintoma: engasgadas com fps médio no limite.
+- **Voltar atrás:** `idle_wait_max_us=0` em `perf/tuning.txt` (gira sempre, como antes), ou `idle_sleep_min_pct=101`.

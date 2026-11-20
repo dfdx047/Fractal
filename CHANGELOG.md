@@ -43,6 +43,12 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   20 s into a game, a one-time hint when the game may ignore the setup (a Pro Controller in a game that reads the
   GamePad, or the reverse), with a button that sets it for this game. "Nintendo button layout" option; controller slots
   named "Player N · type" (`5e6c4e42`).
+- **Gyro calibration:** "Calibrate gyro" in the in-game menu (and a hotkey) takes the position the device is held in as
+  the pose that aims straight ahead in games that aim by tilting the GamePad (Splatoon); "Reset gyro calibration" goes
+  back to the device's own axes. The motion estimate now starts at the device's tilt instead of sliding there over
+  about 10 s (Splatoon's aim drifted to the floor or the sky after motion was turned on), the axes follow the display
+  when it turns 180 degrees, and a stall of more than a second no longer feeds a huge time step to the estimate
+  (`71f9f21a`).
 - **Resolution hint:** after a minute of play at a median under 22 fps, a game whose graphic packs have a resolution
   option is offered 640x360 once, with a restart. On an Adreno 610: Kirby and the Rainbow Curse 12 → 27 fps, NSMBU
   20 → 34, Captain Toad 16 → 30 (`08c67298`).
@@ -85,6 +91,12 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   Spider-Man 2 on the Retroid Pocket 5: 34.9 → 40.3 fps with CPU use 262 → 193 %. No change on the POCO X6 Pro and the
   Mi A3; nothing is pinned on CPUs without a little cluster (Snapdragon 8 Elite). `big_cores=0` in `perf/tuning.txt`
   turns it off (`683c6772`).
+- **Main core idle loop sleeps when there is slack:** a game capped at its frame rate with time to spare kept a host
+  core at 100% spinning in the emulated main core's idle loop. The loop now sleeps until the next alarm when the core
+  was idle at least 80% of the last 250 ms and has been idle for 2 ms; a game that needs the core keeps spinning.
+  Splatoon on the Odin 3: 6.7 → 4.8 W, CPU 144 → 120 %, 1% low 56.5 → 54.6; Super Mario 3D World on the RP5, the POCO X6
+  Pro and the Mi A3 unchanged. `idle_sleep_min_pct`, `idle_spin_us` and `idle_wait_max_us` in `perf/tuning.txt`
+  (`idle_wait_max_us=0` always spins) (`2b5b0dca`).
 - **Profile guided optimization (PGO):** the native library is built with a profile collected on the Odin 3, the POCO
   X6 Pro and the Mi A3 (19 games, `src/android/pgo/fractal.profdata`). Watch Dogs on the Odin 3: 51.4 → 56.1 fps (1% low
   41 → 45); Bayonetta 2 and AC III on the POCO slightly up; Retroid Pocket 5 and Mi A3 unchanged. `FRACTAL_PGO=off`
