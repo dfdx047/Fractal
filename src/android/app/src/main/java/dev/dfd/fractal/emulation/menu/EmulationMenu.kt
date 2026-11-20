@@ -15,6 +15,7 @@ import dev.dfd.fractal.nativeinterface.NativeFrameGen.LosslessDllStatus
 import dev.dfd.fractal.common.framegen.installLosslessDll
 import dev.dfd.fractal.common.framegen.losslessDllStatusToString
 import dev.dfd.fractal.emulation.rememberSecondDisplay
+import dev.dfd.fractal.emulation.EmulationActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -492,6 +493,7 @@ private fun FrameGenMenuSection(isOpen: Boolean) {
     }
     importMessage?.let { MenuHint(it) }
 
+    val frameGenContext = LocalContext.current
     var enabled by remember { mutableStateOf(NativeFrameGen.isEnabled()) }
     var multiplier by remember { mutableIntStateOf(NativeFrameGen.getMultiplier()) }
     var targetRate by remember { mutableIntStateOf(NativeFrameGen.getTargetRate()) }
@@ -516,6 +518,7 @@ private fun FrameGenMenuSection(isOpen: Boolean) {
             enabled = on
             NativeFrameGen.setEnabled(on)
             NativeSettings.saveSettings()
+            (frameGenContext as? EmulationActivity)?.updatePreferredRefreshRate()
         },
     )
     if (!enabled) return

@@ -20,6 +20,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import dev.dfd.fractal.BuildConfig
 import dev.dfd.fractal.common.android.inputevent.isFromPhysicalController
 import dev.dfd.fractal.common.settings.AppSettingsStore
+import dev.dfd.fractal.nativeinterface.NativeFrameGen
 import dev.dfd.fractal.common.ui.components.ActivityContent
 import dev.dfd.fractal.common.ui.localization.TranslatableContent
 import dev.dfd.fractal.emulation.input.ControllerCallbacks
@@ -180,6 +181,28 @@ class EmulationActivity : AppCompatActivity() {
         super.onResume()
 
         inputManager.onResume(display.rotation)
+        updatePreferredRefreshRate()
+    }
+
+    /**
+     * Frame generation presents 2 to 4 frames per game frame, and presenting waits for the display (FIFO). Without a
+     * request, Android keeps many phones at 60 Hz for apps, so 2x on a 60 FPS game halved the game itself to 30 FPS
+     * (Moto Edge 30 Ultra, 144 Hz panel, issue #9). While frame generation is on, ask for the display's highest refresh
+     * rate at the current resolution; off, leave the choice to the system again.
+     */
+    fun updatePreferredRefreshRate() {
+        val display = display ?: return
+        val wanted = if (NativeFrameGen.isEnabled()) {
+            val current = display.mode
+            display.supportedModes
+                .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+                .maxByOrNull { it.refreshRate }?.modeId ?: 0
+        } else 0
+        val attributes = window.attributes
+        if (attributes.preferredDisplayModeId != wanted) {
+            attributes.preferredDisplayModeId = wanted
+            window.attributes = attributes
+        }
     }
 
     /** The custom driver could not be loaded and the system driver is used: say so while playing. */
