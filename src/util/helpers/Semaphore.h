@@ -112,12 +112,22 @@ public:
 			m_condition.wait(lock);
 	}
 
-	// returns false if the count was still zero when the timeout ran out
+	// returns false if the count was still zero when the timeout ran out or wakeWaiters() ended the wait
 	template<typename TDuration>
 	bool waitUntilNonZeroFor(TDuration timeout)
 	{
 		std::unique_lock lock(m_mutex);
-		return m_condition.wait_for(lock, timeout, [this] { return m_count != 0; });
+		m_condition.wait_for(lock, timeout, [this] { return m_count != 0 || m_wake; });
+		m_wake = false;
+		return m_count != 0;
+	}
+
+	// ends a waitUntilNonZeroFor early without changing the count (the waiter has something else to do)
+	void wakeWaiters()
+	{
+		std::lock_guard lock(m_mutex);
+		m_wake = true;
+		m_condition.notify_all();
 	}
 
 	bool isZero() const
@@ -129,6 +139,7 @@ private:
 	std::mutex m_mutex;
 	std::condition_variable m_condition;
 	sint64 m_count = 0;
+	bool m_wake = false;
 };
 
 template<typename T>

@@ -7,6 +7,7 @@ namespace coreinit
 	OSHostAlarm* OSHostAlarmCreate(uint64 nextFire, uint64 period, void(*callbackFunc)(uint64 currentTick, void* context), void* context);
 	void OSHostAlarmDestroy(OSHostAlarm* hostAlarm);
 	uint64 OSHostAlarm_GetSoonestAlarmTick(); // OSGetTime() ticks, max if there is no alarm
+	void __OSWakeIdleMainCore(); // coreinit_Thread.cpp: ends the main core's idle sleep early
 
 	struct OSAlarm_t;
 

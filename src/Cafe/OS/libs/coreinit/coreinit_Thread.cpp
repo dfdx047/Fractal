@@ -1320,13 +1320,24 @@ namespace coreinit
 
 	Fiber* g_idleLoopFiber[3]{};
 
-	// how long the main core's idle loop may sleep: until the next alarm, at most idle_wait_max_us.
-	// Off by default: on the Retroid Pocket 5, sleeping here together with the GPU thread's wait lowered the load
-	// enough for the CPU governor to drop clocks (SM3DW 52.8 -> 43.5 fps). Each wait alone costs nothing
-	// and the GPU thread's wait saves more CPU, so only that one is on
+	// set while the main core's idle loop sleeps; a new alarm that is due sooner than the one it went to sleep for
+	// wakes it (see coreinit_Alarm.cpp), or e.g. a vsync alarm set by another core would fire up to idle_wait_max_us late
+	static std::atomic<bool> s_mainCoreIdleSleeping{false};
+
+	void __OSWakeIdleMainCore()
+	{
+		static const bool kEnabled = PerfLog::Tunable("idle_alarm_wake", 1) != 0;
+		if (kEnabled && s_mainCoreIdleSleeping.load(std::memory_order_acquire))
+			g_coreRunQueueThreadCount[1].wakeWaiters();
+	}
+
+	// how long the main core's idle loop may sleep: until the next alarm, at most idle_wait_max_us (0 = always spin).
+	// Sleeping every time it ran out of work cost frames on the Retroid Pocket 5 (SM3DW 59.9 -> 53.2 fps, 1% low
+	// 48.7 -> 26.9): short hand-offs between threads paid the wake-up, and the lower load let the governor drop clocks.
+	// So the loop only sleeps when the core has slack (see __OSIdleSleepGate)
 	static std::chrono::microseconds __OSIdleWaitTimeout()
 	{
-		static const uint64 kMaxUs = (uint64)PerfLog::Tunable("idle_wait_max_us", 0);
+		static const uint64 kMaxUs = (uint64)PerfLog::Tunable("idle_wait_max_us", 500);
 		// paused from the menu: nothing of the game runs, so spinning would only keep a host core at 100%.
 		// 5 ms keeps alarms and system events going; resuming makes threads runnable, which ends the wait at once
 		if (s_activeThreadsSuspended.load(std::memory_order_relaxed))
@@ -1342,6 +1353,46 @@ namespace coreinit
 		return std::chrono::microseconds(std::min(untilAlarmUs, kMaxUs));
 	}
 
+	// Decides when the main core's idle loop may sleep instead of spinning. A game capped at its frame rate with time
+	// to spare (Splatoon on the AYN Odin 3: GPU 20% busy) kept a host core at 100% only to spin. Sleeping is allowed
+	// when both hold:
+	// - the core was idle at least idle_sleep_min_pct of the last window: a game that needs the core (SM3DW on the RP5)
+	//   keeps spinning, so neither wake-ups nor lower clocks slow it down
+	// - this idle stretch has lasted idle_spin_us: short hand-offs between threads still find the core spinning
+	// Measured at 60 fps (always spinning -> these defaults): Splatoon on the Odin 3 6.7 -> 4.8 W, CPU 144 -> 120%,
+	// 1% low 56.5 -> 54.6; SM3DW on the RP5 and the POCO X6 Pro never sleeps, so it is unchanged. Lower values cost
+	// SM3DW's 1% low on the RP5 (60%: 51 -> 40-45; 75%: 51 -> 39-45); a 200 us spin cost Splatoon's (51.5)
+	struct __OSIdleSleepGate
+	{
+		static constexpr uint64 kWindowNs = 250'000'000;
+		uint64 spinNs = (uint64)PerfLog::Tunable("idle_spin_us", 2000) * 1000;
+		uint64 minPct = (uint64)PerfLog::Tunable("idle_sleep_min_pct", 80);
+		uint64 idleSinceNs;
+		uint64 windowStartNs;
+		uint64 windowIdleNs = 0;
+		bool slack = false;
+
+		explicit __OSIdleSleepGate(uint64 nowNs) : idleSinceNs(nowNs), windowStartNs(nowNs) {}
+
+		// idle time of the current stretch that falls inside the current window
+		uint64 IdleInWindow(uint64 nowNs) const { return nowNs - std::max(idleSinceNs, windowStartNs); }
+
+		void OnThreadRuns(uint64 nowNs) { windowIdleNs += IdleInWindow(nowNs); }
+		void OnIdleAgain(uint64 nowNs) { idleSinceNs = nowNs; }
+
+		bool MaySleep(uint64 nowNs)
+		{
+			if (nowNs - windowStartNs >= kWindowNs)
+			{
+				const uint64 idle = windowIdleNs + IdleInWindow(nowNs);
+				slack = idle * 100 >= minPct * (nowNs - windowStartNs);
+				windowStartNs = nowNs;
+				windowIdleNs = 0;
+			}
+			return slack && nowNs - idleSinceNs >= spinNs;
+		}
+	};
+
 	// idle fiber per core if no thread is runnable
 	// this is necessary since we can't block in __OSThreadSwitchToNext() (__OSStoreThread + thread switch must happen inside same scheduler lock)
 	void __OSThreadCoreIdle(void* unusedParam)
@@ -1351,6 +1402,7 @@ namespace coreinit
 		// time in this loop is idle time of the host thread for the ADPF hint session (util/helpers/PerformanceHint.h)
 		const PerfHint::Role hintRole = (PerfHint::Role)std::clamp<sint32>(__OSAssignedCoreIndex(), 0, 2);
 		uint64 idleSince = PerfHint::NowNs();
+		__OSIdleSleepGate sleepGate(idleSince);
 		__OSUnlockScheduler();
 		while (true)
 		{
@@ -1361,9 +1413,12 @@ namespace coreinit
 				if (nextThread)
 				{
 					cemu_assert_debug(nextThread->state == OSThread_t::THREAD_STATE::STATE_RUNNING);
-					PerfHint::AddIdleNs(hintRole, PerfHint::NowNs() - idleSince);
+					const uint64 runNs = PerfHint::NowNs();
+					PerfHint::AddIdleNs(hintRole, runNs - idleSince);
+					sleepGate.OnThreadRuns(runNs);
 					__OSSwitchToThreadFiber(nextThread, coreIndex);
 					idleSince = PerfHint::NowNs();
+					sleepGate.OnIdleAgain(idleSince);
 				}
 				__OSUnlockScheduler();
 			}
@@ -1374,12 +1429,18 @@ namespace coreinit
 					coreIndex = (coreIndex + 1) % 3;
 				else if (g_coreRunQueueThreadCount[coreIndex].isZero())
 				{
-					// nothing to run: sleep until a thread becomes runnable instead of spinning. The timeout keeps alarms,
-					// audio (every ~3 ms) and amiibo polling going; it is short enough not to delay them noticeably.
-					// Spinning here used to keep a fast host core busy and read the clock millions of times per second.
-					const auto timeout = __OSIdleWaitTimeout();
-					if (timeout.count() > 0)
-						g_coreRunQueueThreadCount[coreIndex].waitUntilNonZeroFor(timeout);
+					// nothing to run: when the core has slack (or the game is paused), sleep until a thread becomes
+					// runnable instead of spinning. The timeout keeps alarms, audio (every ~3 ms) and amiibo polling
+					// going; it is short enough not to delay them noticeably.
+					if (s_activeThreadsSuspended.load(std::memory_order_relaxed) || sleepGate.MaySleep(PerfHint::NowNs()))
+					{
+						// the flag goes up before the deadline is read: an alarm set after that read wakes the wait
+						s_mainCoreIdleSleeping.store(true, std::memory_order_seq_cst);
+						const auto timeout = __OSIdleWaitTimeout();
+						if (timeout.count() > 0)
+							g_coreRunQueueThreadCount[coreIndex].waitUntilNonZeroFor(timeout);
+						s_mainCoreIdleSleeping.store(false, std::memory_order_relaxed);
+					}
 				}
 			}
 			else

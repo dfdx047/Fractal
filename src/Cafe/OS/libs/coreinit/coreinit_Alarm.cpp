@@ -26,6 +26,9 @@ namespace coreinit
 			cemu_assert_debug(r.second); // check if insertion was successful
 			m_isActive = true;
 			updateEarliestAlarmAtomic();
+			// due before anything else: the main core may be asleep until a later deadline
+			if (g_soonestAlarm.load(std::memory_order_relaxed) == m_nextFire)
+				__OSWakeIdleMainCore();
 		}
 
 		~OSHostAlarm()
