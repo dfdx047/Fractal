@@ -17,6 +17,7 @@ fun HotkeyAction.displayName(): String = when (this) {
     HotkeyAction.TOGGLE_ASPECT_RATIO -> tr("Keep aspect ratio / stretch")
     HotkeyAction.CYCLE_UPSCALE_FILTER -> tr("Next upscale filter")
     HotkeyAction.TOGGLE_MOTION -> tr("Enable / disable motion")
+    HotkeyAction.CALIBRATE_MOTION -> tr("Calibrate gyro")
 }
 
 /** Short text drawn on an on-screen shortcut button that has no label of its own. */
@@ -33,4 +34,5 @@ fun HotkeyAction.shortLabel(): String = when (this) {
     HotkeyAction.TOGGLE_ASPECT_RATIO -> tr("Aspect")
     HotkeyAction.CYCLE_UPSCALE_FILTER -> tr("Filter")
     HotkeyAction.TOGGLE_MOTION -> tr("Motion")
+    HotkeyAction.CALIBRATE_MOTION -> tr("Gyro")
 }

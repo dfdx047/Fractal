@@ -342,6 +342,12 @@ Java_dev_dfd_fractal_nativeinterface_NativeInput_onDeviceMotion([[maybe_unused]]
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
+Java_dev_dfd_fractal_nativeinterface_NativeInput_resetDeviceMotion([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	DeviceController::reset_motion();
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_dev_dfd_fractal_nativeinterface_NativeInput_setDeviceMotionEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean motionEnabled)
 {
 	DeviceController::set_motion_enabled(motionEnabled);

@@ -24,4 +24,5 @@ enum class HotkeyAction {
     TOGGLE_ASPECT_RATIO,
     CYCLE_UPSCALE_FILTER,
     TOGGLE_MOTION,
+    CALIBRATE_MOTION,
 }

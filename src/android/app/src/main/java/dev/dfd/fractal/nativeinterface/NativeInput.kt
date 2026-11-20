@@ -250,6 +250,10 @@ object NativeInput {
     @JvmStatic
     external fun setDeviceMotionEnabled(motionEnabled: Boolean)
 
+    /** Starts the GamePad orientation estimate over, from the current device position. */
+    @JvmStatic
+    external fun resetDeviceMotion()
+
     @JvmStatic
     external fun setDeviceRumble(rumble: Float)
 

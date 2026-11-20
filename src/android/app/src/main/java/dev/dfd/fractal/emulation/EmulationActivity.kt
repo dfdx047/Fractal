@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import dev.dfd.fractal.common.customdrivers.DriverGuard
 import dev.dfd.fractal.common.ui.localization.tr
 import android.content.Context
+import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -49,6 +50,12 @@ private class InputDelegateManager(private val context: Context) {
     fun setDeviceMotionEnabled(isListening: Boolean) =
         deviceMotionHandler.setIsListening(isListening)
 
+    fun setDeviceRotation(rotation: Int) = deviceMotionHandler.setDeviceRotation(rotation)
+
+    fun calibrateMotion(): Boolean = deviceMotionHandler.calibrate()
+
+    fun resetMotionCalibration() = deviceMotionHandler.resetCalibration()
+
     fun registerAll() {
         nativeInputDeviceListener.register()
         controllerCallbacks.register()
@@ -82,6 +89,17 @@ private class InputDelegateManager(private val context: Context) {
 class EmulationActivity : AppCompatActivity() {
     private lateinit var inputManager: InputDelegateManager
     private var processInputEvents = true
+
+    // the gyro axes follow the screen: the game may open while the phone is still upright, and a 180° turn between the
+    // two landscapes resumes nothing, so onResume alone left the axes swapped or inverted
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {}
+        override fun onDisplayRemoved(displayId: Int) {}
+        override fun onDisplayChanged(displayId: Int) {
+            val display = display ?: return
+            if (displayId == display.displayId) inputManager.setDeviceRotation(display.rotation)
+        }
+    }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         if (processInputEvents) {
@@ -158,6 +176,8 @@ class EmulationActivity : AppCompatActivity() {
                     EmulationScreen(
                         gamePath = gamePath,
                         setMotionSensorEnabled = inputManager::setDeviceMotionEnabled,
+                        onCalibrateMotion = inputManager::calibrateMotion,
+                        onResetMotionCalibration = inputManager::resetMotionCalibration,
                         onQuit = ::onQuit,
                         onRestartGame = ::restartGame,
                         setInputListeningEnabled = {
@@ -175,12 +195,14 @@ class EmulationActivity : AppCompatActivity() {
         super.onPause()
 
         inputManager.onPause()
+        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
     }
 
     override fun onResume() {
         super.onResume()
 
         inputManager.onResume(display.rotation)
+        getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, null)
         updatePreferredRefreshRate()
     }
 

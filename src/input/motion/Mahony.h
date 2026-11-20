@@ -13,6 +13,35 @@ public:
 		m_imuQ.Assign(sqrtf(0.5), sqrtf(0.5), 0.0f, 0.0f);
 	}
 
+	// Starts the estimate at the tilt the accelerometer measures now (yaw stays as it is). Without this the estimate
+	// begins at the default pose and drifts to the real one over ~10 s, and games that follow orientation changes
+	// (Splatoon's aim) take that drift as the player turning the GamePad.
+	void seedFromAccelerometer(float ax, float ay, float az)
+	{
+		Vector3f av(ax, ay, az);
+		if (av.Length() < 0.5f)
+			return; // no clear "down" (falling, shaking or no data)
+		av.Normalize();
+		// held upside down from the default pose: the feedback below has no direction, start with a quarter turn
+		if (m_imuQ.GetVectorZ().Dot(av) < -0.99f)
+		{
+			m_imuQ += (m_imuQ * Quaternionf(0.0f, 0.75f, 0.0f, 0.0f));
+			m_imuQ.NormalizeXYZW();
+		}
+		// the accelerometer feedback of updateIMU at full strength, without gyro, until "down" matches
+		for (int i = 0; i < 200; i++)
+		{
+			Vector3f err = m_imuQ.GetVectorZ().Cross(av);
+			if (err.Length() < 1e-5f && m_imuQ.GetVectorZ().Dot(av) > 0.0f)
+				break;
+			err.Scale(-0.5f);
+			m_imuQ += (m_imuQ * Quaternionf(0.0f, err.x, err.y, err.z));
+			m_imuQ.NormalizeXYZW();
+		}
+		calcOrientation();
+		m_rollWinding = m_pitchWinding = m_yawWinding = 0;
+	}
+
 	// gx, gy, gz are in radians/sec
 	void updateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az)
 	{

@@ -98,6 +98,8 @@ import dev.dfd.fractal.nativeinterface.NativeSettings
 fun EmulationScreen(
     gamePath: String,
     setMotionSensorEnabled: (Boolean) -> Unit,
+    onCalibrateMotion: () -> Boolean = { false },
+    onResetMotionCalibration: () -> Unit = {},
     setInputListeningEnabled: (Boolean) -> Unit,
     onQuit: () -> Unit,
     onRestartGame: () -> Unit = {},
@@ -195,6 +197,14 @@ fun EmulationScreen(
                 snackbarHostState.showMessage(
                     scope,
                     if (viewModel.sideMenuState.value.isMotionEnabled) tr("Motion enabled") else tr("Motion disabled"),
+                )
+            }
+
+            HotkeyAction.CALIBRATE_MOTION -> {
+                if (!viewModel.sideMenuState.value.isMotionEnabled) applyMenuState { it.copy(isMotionEnabled = true) }
+                snackbarHostState.showMessage(
+                    scope,
+                    if (onCalibrateMotion()) tr("Gyro calibrated") else tr("Hold the device still and try again"),
                 )
             }
 
@@ -399,6 +409,18 @@ fun EmulationScreen(
 
             override fun controllerSettings() {
                 panel = EmulationPanel.ControllerPicker
+            }
+
+            override fun calibrateMotion() {
+                snackbarHostState.showMessage(
+                    scope,
+                    if (onCalibrateMotion()) tr("Gyro calibrated") else tr("Hold the device still and try again"),
+                )
+            }
+
+            override fun resetMotionCalibration() {
+                onResetMotionCalibration()
+                snackbarHostState.showMessage(scope, tr("Gyro calibration reset"))
             }
 
             override fun hotkeys() {

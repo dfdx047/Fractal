@@ -21,6 +21,12 @@ public:
 		m_acc[0] = accx;
 		m_acc[1] = accy;
 		m_acc[2] = accz;
+		// the first sample with a clear "down" places the estimate at the device's real tilt
+		if (!m_seeded && accx * accx + accy * accy + accz * accz > 0.25f)
+		{
+			m_imu.seedFromAccelerometer(accx, accy, accz);
+			m_seeded = true;
+		}
 		// integrate acc and gyro samples into IMU
 		m_imu.updateIMU(deltaTime, gx, gy, gz, accx, accy, accz);
 
@@ -51,6 +57,7 @@ private:
 	}
 
 	MahonySensorFusion m_imu;
+	bool m_seeded{};
 	// state
 	float m_gyro[3]{};
 	float m_acc[3]{};

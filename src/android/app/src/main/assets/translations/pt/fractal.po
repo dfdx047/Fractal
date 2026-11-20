@@ -3634,3 +3634,27 @@ msgstr "Sobreposição clássica"
 
 msgid "Cemu's statistics box, without the app theme. The performance HUD above shows the same statistics"
 msgstr "Caixa de estatísticas do Cemu, sem o tema do app. O HUD de desempenho acima mostra as mesmas estatísticas"
+
+msgid "Calibrate gyro"
+msgstr "Calibrar giroscópio"
+
+msgid "Gyro"
+msgstr "Giro"
+
+msgid "Hold the device the way you play and tap: in that position, games that aim by tilting the GamePad (Splatoon) aim straight ahead"
+msgstr "Segure o aparelho do jeito que você joga e toque: nessa posição, os jogos que miram inclinando o GamePad (Splatoon) miram reto"
+
+msgid "Reset gyro calibration"
+msgstr "Desfazer calibragem do giroscópio"
+
+msgid "The device held upright is the GamePad held upright again"
+msgstr "O aparelho em pé volta a ser o GamePad em pé"
+
+msgid "Gyro calibrated"
+msgstr "Giroscópio calibrado"
+
+msgid "Hold the device still and try again"
+msgstr "Segure o aparelho parado e tente de novo"
+
+msgid "Gyro calibration reset"
+msgstr "Calibragem do giroscópio desfeita"

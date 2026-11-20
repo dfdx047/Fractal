@@ -47,6 +47,9 @@ class DeviceController : public Controller<DeviceControllerProvider>
 
 	static void set_motion_enabled(bool enabled);
 
+	// starts the orientation estimate over (after the gyro is calibrated)
+	static void reset_motion();
+
   private:
 	inline static bool s_has_motion{};
 	inline static std::mutex s_mutex{};

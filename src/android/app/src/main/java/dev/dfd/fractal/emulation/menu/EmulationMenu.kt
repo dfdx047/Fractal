@@ -121,6 +121,8 @@ interface EmulationMenuActions {
     fun emulatedUsbDevices()
     fun gameSettings()
     fun gamePacks()
+    fun calibrateMotion()
+    fun resetMotionCalibration()
 }
 
 val ScalingFilterChoices = listOf(
@@ -385,6 +387,20 @@ fun EmulationMenuContent(
             checked = state.isMotionEnabled,
             onCheckedChange = { on -> actions.updateMenuState { it.copy(isMotionEnabled = on) } },
         )
+        if (state.isMotionEnabled) {
+            MenuActionRow(
+                icon = MenuIcons.Motion,
+                title = tr("Calibrate gyro"),
+                description = tr("Hold the device the way you play and tap: in that position, games that aim by tilting the GamePad (Splatoon) aim straight ahead"),
+                onClick = actions::calibrateMotion,
+            )
+            MenuActionRow(
+                icon = MenuIcons.Motion,
+                title = tr("Reset gyro calibration"),
+                description = tr("The device held upright is the GamePad held upright again"),
+                onClick = actions::resetMotionCalibration,
+            )
+        }
 
         MenuSection(tr("Devices"))
         MenuActionRow(

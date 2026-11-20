@@ -80,12 +80,19 @@ void DeviceController::process_motion(std::chrono::steady_clock::time_point time
 	constexpr auto maxDuration = 1s;
 	auto clamped = std::min<std::common_type_t<decltype(dif), decltype(maxDuration)>>(dif, maxDuration);
 
-	float deltaSeconds = std::chrono::duration_cast<std::chrono::duration<float>>(dif).count();
+	float deltaSeconds = std::chrono::duration_cast<std::chrono::duration<float>>(clamped).count();
 
 	s_motion_handler.processMotionSample(
 		deltaSeconds,
 		gx, gy, gz,
 		accx, accy, accz);
+}
+
+void DeviceController::reset_motion()
+{
+	std::scoped_lock lock{s_mutex};
+	s_motion_handler = WiiUMotionHandler{};
+	s_last_motion_timestamp = {};
 }
 
 void DeviceController::set_motion_enabled(bool enabled)
