@@ -14,8 +14,10 @@ O que entrou na v0.2 está no [CHANGELOG](../CHANGELOG.md) e nas [notas da vers�
   correlaciona), a cópia de autodependência (`selfdep_copy=0` deu 5 escuras seguidas, mas desligar a cópia nos 3 shaders
   que a usam deu 2 claras: foi acaso).
 - Pista nova: os resultados vêm em **sequências** (6 escuras seguidas de madrugada, depois 3 claras, 1 escura, 4 claras...).
-  Algo persiste entre uma partida e outra, ou depende do horário/temperatura do aparelho. Próximo passo: rodar com o
-  cache de shaders e pipelines apagado x restaurado, com o aparelho frio x quente, e comparar o estado salvo do jogo.
+  Algo persiste entre uma partida e outra.
+- **Temperatura descartada** (20/11, build final 3c1ce92c, save apagado a cada partida): 3 claras e 1 escura com bateria
+  a 33-34 °C, pele a 46-50 °C, GPU 660 MHz e consumo iguais nas 4. Próximo passo: rodar com o cache de shaders e
+  pipelines apagado x restaurado e comparar dumps da passada de luz/exposição entre uma partida clara e uma escura.
 - Ramo de teste `wd-selfdep` (92ad50ef, tunables `selfdep_copy_skip1..3`): pode ser apagado se a pista acima vingar.
 
 ### Mario Kart 8 no Mi A3 (Adreno 610)
