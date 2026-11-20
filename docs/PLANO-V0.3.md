@@ -19,8 +19,13 @@ O que entrou na v0.2 está no [CHANGELOG](../CHANGELOG.md) e nas [notas da vers�
   a 33-34 °C, pele a 46-50 °C, GPU 660 MHz e consumo iguais nas 4.
 - **Pista forte: o cache de shaders** (20/11, 15 partidas alternadas): com os 3 arquivos do WD apagados antes de cada
   partida (`transferable/*_shaders.bin`, `*_vkpipeline.bin`, `precompiled/*_spirv.bin`) foram 7 escuras em 7; com o
-  cache mantido, 5 escuras e 2 claras. Próximo passo: separar qual dos 3 arquivos decide (apagar um de cada vez) e
-  comparar o SPIR-V do cache com o recompilado para os shaders da passada de luz/exposição.
+  cache mantido, 5 escuras e 2 claras.
+- **O arquivo que decide é o `shaders.bin`** (20/11, APK final e3b8d4e1, um arquivo apagado por partida, 14 partidas):
+  sem `shaders.bin`, 6 escuras em 6; sem `spirv.bin` (o jogo recria todos os shaders do `shaders.bin` no boot), 6 claras
+  em 6; sem `vkpipeline.bin`, 1 meio clara e 1 escura. Ou seja: um shader **recriado do cache transferível** sai
+  diferente do mesmo shader compilado durante o jogo. Suspeita: o cache não guarda algum registrador que muda a
+  decompilação, ou o grupo de shaders dependentes é montado em outra ordem. Próximo passo: comparar o GLSL das duas
+  formas (tunable `dump_shaders=1`, `files/dump/shaders/`; script `Fractal-trabalho/tmp/odin3_wddump.sh`).
 - **Issue #8** (água branca no BotW, Odin 2 Portal, "às vezes corrige ao reabrir") parece o mesmo problema: pedimos ao
   usuário para testar sem o cache do BotW.
 - Ramo de teste `wd-selfdep` (92ad50ef, tunables `selfdep_copy_skip1..3`): pode ser apagado se a pista acima vingar.
