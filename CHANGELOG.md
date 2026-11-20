@@ -109,6 +109,14 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   ~330 times per frame. Pixel shaders that do it more than 8 times in a frame go back to the feedback loop; filter passes
   like Paper Mario's (once per frame) keep the copy. On PanVK it also lifted Need for Speed: Most Wanted U (9 to 18 fps),
   Resident Evil Revelations (13 to 23 fps) and FIFA 13 (36 to 46 fps) (`4edbc727`).
+- **Same fix on the Mali and Qualcomm system drivers:** without `VK_EXT_attachment_feedback_loop_layout` those shaders
+  still copied the attachment before every draw. They now split the render pass, as before the copy existed; filter
+  passes (Paper Mario, Assassin's Creed IV's bloom) keep the copy. POCO X6 Pro (Mali): Need for Speed: Most Wanted U
+  17.2 → 28.8 fps, Resident Evil Revelations 24.9 → 30.0 fps, Breath of the Wild 5.9 → 15.6 fps (opening); RP5 (Qualcomm): Ninja
+  Gaiden 3 Razor's Edge 35.5 → 38.3 fps, the rest the same or slightly better (`b96b5dca`).
+- **Frame generation** halved the game's own frame rate on phones that keep apps at 60 Hz (Moto Edge 30 Ultra, issue
+  #9): the generated frames wait for the display. While frame generation is on, Fractal now asks Android for the
+  display's highest refresh rate (`0f0cc53b`).
 - **Super Smash Bros. for Wii U:** froze loading a stage on the RP5. `OSMutex` now has priority inheritance, as Cafe OS
   does. Default profile on the system driver: with Turnip the RP5 rebooted at the end of 4 of 4 matches
   (`5568a685`, `614d2531`).

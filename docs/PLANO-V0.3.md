@@ -16,8 +16,13 @@ O que entrou na v0.2 está no [CHANGELOG](../CHANGELOG.md) e nas [notas da vers�
 - Pista nova: os resultados vêm em **sequências** (6 escuras seguidas de madrugada, depois 3 claras, 1 escura, 4 claras...).
   Algo persiste entre uma partida e outra.
 - **Temperatura descartada** (20/11, build final 3c1ce92c, save apagado a cada partida): 3 claras e 1 escura com bateria
-  a 33-34 °C, pele a 46-50 °C, GPU 660 MHz e consumo iguais nas 4. Próximo passo: rodar com o cache de shaders e
-  pipelines apagado x restaurado e comparar dumps da passada de luz/exposição entre uma partida clara e uma escura.
+  a 33-34 °C, pele a 46-50 °C, GPU 660 MHz e consumo iguais nas 4.
+- **Pista forte: o cache de shaders** (20/11, 15 partidas alternadas): com os 3 arquivos do WD apagados antes de cada
+  partida (`transferable/*_shaders.bin`, `*_vkpipeline.bin`, `precompiled/*_spirv.bin`) foram 7 escuras em 7; com o
+  cache mantido, 5 escuras e 2 claras. Próximo passo: separar qual dos 3 arquivos decide (apagar um de cada vez) e
+  comparar o SPIR-V do cache com o recompilado para os shaders da passada de luz/exposição.
+- **Issue #8** (água branca no BotW, Odin 2 Portal, "às vezes corrige ao reabrir") parece o mesmo problema: pedimos ao
+  usuário para testar sem o cache do BotW.
 - Ramo de teste `wd-selfdep` (92ad50ef, tunables `selfdep_copy_skip1..3`): pode ser apagado se a pista acima vingar.
 
 ### Mario Kart 8 no Mi A3 (Adreno 610)

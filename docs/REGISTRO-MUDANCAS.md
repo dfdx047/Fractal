@@ -236,3 +236,29 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
   (prints de 120 e 240 s diferentes). Regressão completa da build nos 4 aparelhos.
 - **Lição:** ao corrigir um jogo por title fix, procurar o mesmo código nos jogos do mesmo estúdio/motor.
 - **Voltar atrás:** reverter os dois commits (não há chave em `perf/tuning.txt`).
+
+### Autodependência sem cópia nos drivers sem feedback loop (entra na v0.2-beta)
+
+- **Commit:** `b96b5dca`.
+- **Sintoma:** BotW no POCO (driver Mali) a 4-6 fps na abertura ("Open your eyes"), já na v0.1. Visto na vitrine de 20/11.
+- **Causa:** a cópia do anexo antes de cada draw que amostra o próprio anexo (`64c4b75c`, 14/11, para o bloom do AC IV
+  no driver Qualcomm do RP5) vale para todo driver sem `VK_EXT_attachment_feedback_loop_layout`. A regra de `4edbc727`
+  (shader com mais de 8 desses draws por quadro deixa de copiar) só valia com feedback loop.
+- **Correção:** a regra vale em todo driver; sem feedback loop o passe é dividido, como antes da cópia existir. AC IV
+  (bloom) e Paper Mario (filtro) ficam abaixo de 8 por quadro e continuam copiando (nenhum evento `selfdep_feedback`
+  nesses jogos no Odin 3).
+- **Testado:** POCO Mali 19 jogos sem crash, NFS 17,2 → 28,8, RER 24,9 → 30,0, imagem igual (prints de 240 s);
+  `selfdep_copy=0` no BotW deu 5,8 → 16,8. RP5 system 13/13 (Ninja Gaiden 3 35,5 → 38,3, resto igual ou melhor);
+  Mi A3 system 3 jogos x5 iguais. BotW A/B (regra 8 x cópia sempre, save restaurado antes de cada run): 5,9 → 15,6 fps nas duas rodadas, imagem certa (Link no Santuário).
+- **Voltar atrás:** `selfdep_copy_max_per_frame=1000000` em `perf/tuning.txt`.
+
+### Geração de quadros pede a maior taxa de atualização (issue #9)
+
+- **Commit:** `0f0cc53b`.
+- **Sintoma:** Moto Edge 30 Ultra (tela de 144 Hz): com a geração de quadros ligada, o fps base caía pela metade em
+  qualquer jogo (Super Metroid 60 → 30 base, 60 na tela). O contador do Android no vídeo mostrava a tela em 60 Hz.
+- **Causa:** o present espera a tela (FIFO) e o Fractal não pedia taxa nenhuma; vários celulares deixam apps em 60 Hz.
+- **Correção:** com a geração ligada, a janela da emulação pede o modo de maior taxa na resolução atual
+  (`preferredDisplayModeId`); desligada, volta para a escolha do sistema. Também ao ligar/desligar no menu do jogo.
+- **Testado:** pedido do modo conferido no POCO (`dumpsys window`: ligada `preferredDisplayMode=3` e voto de 120 Hz no `dumpsys display`; desligada, nenhum pedido); POCO e Odin 3 já ficam em 120 Hz nos jogos, então o
+  ganho só aparece em aparelhos como o do usuário da issue.
