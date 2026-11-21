@@ -54,7 +54,7 @@ fun SettingsHomeScreen(
             tr("System"),
             SettingsEntry(
                 FractalIcons.Settings, tr("General settings"),
-                tr("App and console language, GamePad screen position"),
+                tr("App and console language, GamePad screen position, battery saving"),
                 dropUnlessResumed(block = goToGeneralSettings),
             ),
             SettingsEntry(

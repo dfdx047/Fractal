@@ -94,8 +94,8 @@ msgstr "Android siempre se sincroniza con la pantalla. El búfer triple (mailbox
 msgid "Animated"
 msgstr "Animado"
 
-msgid "App and console language, GamePad screen position"
-msgstr "Idioma de la app y de la consola, posición de la pantalla del GamePad"
+msgid "App and console language, GamePad screen position, battery saving"
+msgstr "Idioma de la app y de la consola, posición de la pantalla del GamePad, ahorro de batería"
 
 msgid "App language"
 msgstr "Idioma de la app"
