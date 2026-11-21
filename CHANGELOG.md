@@ -91,12 +91,13 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   Spider-Man 2 on the Retroid Pocket 5: 34.9 → 40.3 fps with CPU use 262 → 193 %. No change on the POCO X6 Pro and the
   Mi A3; nothing is pinned on CPUs without a little cluster (Snapdragon 8 Elite). `big_cores=0` in `perf/tuning.txt`
   turns it off (`683c6772`).
-- **Main core idle loop sleeps when there is slack:** a game capped at its frame rate with time to spare kept a host
-  core at 100% spinning in the emulated main core's idle loop. The loop now sleeps until the next alarm when the core
-  was idle at least 80% of the last 250 ms and has been idle for 2 ms; a game that needs the core keeps spinning.
-  Splatoon on the Odin 3: 6.7 → 4.8 W, CPU 144 → 120 %, 1% low 56.5 → 54.6; Super Mario 3D World on the RP5, the POCO X6
-  Pro and the Mi A3 unchanged. `idle_sleep_min_pct`, `idle_spin_us` and `idle_wait_max_us` in `perf/tuning.txt`
-  (`idle_wait_max_us=0` always spins) (`2b5b0dca`).
+- **Save battery** (general settings, off by default): a game capped at its frame rate with time to spare kept a host
+  core at 100% spinning in the emulated main core's idle loop. With the option on, the loop sleeps (at most 100 µs,
+  until the next alarm) when the core was idle at least 80% of the last 250 ms and has been idle for 2 ms; a game that
+  needs the core keeps spinning. Splatoon on the Odin 3: 6.7 → 4.8 W, CPU 144 → 120%; NSMBU on the RP5: CPU 147 → 131%.
+  It costs 2-3 fps of 1% low (Splatoon 57 → 54, NSMBU 49 → 47); Super Mario 3D World on the RP5, the POCO X6 Pro and the
+  Mi A3 unchanged. `save_battery`, `idle_sleep_min_pct`, `idle_spin_us` and `idle_wait_max_us` in `perf/tuning.txt`
+  (`2b5b0dca`, `fb53ac0b`).
 - **Profile guided optimization (PGO):** the native library is built with a profile collected on the Odin 3, the POCO
   X6 Pro and the Mi A3 (19 games, `src/android/pgo/fractal.profdata`). Watch Dogs on the Odin 3: 51.4 → 56.1 fps (1% low
   41 → 45); Bayonetta 2 and AC III on the POCO slightly up; Retroid Pocket 5 and Mi A3 unchanged. `FRACTAL_PGO=off`

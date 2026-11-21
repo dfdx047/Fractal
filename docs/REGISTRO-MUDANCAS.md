@@ -265,13 +265,14 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
 
 ## 2026-11-20
 
-### Laço ocioso do núcleo principal dorme quando há folga
+### Laço ocioso do núcleo principal dorme quando há folga ("Economizar bateria", desligado por padrão)
 
-- **Commit:** `2b5b0dca`.
+- **Commits:** `2b5b0dca` (laço), `fb53ac0b` (vira a opção **Economizar bateria** nas configurações gerais, desligada
+  por padrão; sono máximo 100 µs).
 - **O que muda:** o laço ocioso do núcleo principal emulado (núcleo 1, modo multicore) girava sempre, lendo o relógio e
-  testando as travas. Agora ele dorme até o próximo alarme (no máximo `idle_wait_max_us`, padrão 500 µs) quando o núcleo
-  ficou ocioso em pelo menos `idle_sleep_min_pct` (80 %) da última janela de 250 ms **e** este trecho ocioso já dura
-  `idle_spin_us` (2 ms). Um alarme novo que vence antes do prazo acorda o laço (`idle_alarm_wake`, padrão 1).
+  testando as travas. Com a opção ligada, dorme até o próximo alarme (no máximo `idle_wait_max_us`, 100 µs) quando o
+  núcleo ficou ocioso em pelo menos `idle_sleep_min_pct` (80 %) da última janela de 250 ms **e** este trecho ocioso já
+  dura `idle_spin_us` (2 ms). Um alarme novo que vence antes do prazo acorda o laço (`idle_alarm_wake`, padrão 1).
 - **Testado (A/B alternado, `tools/perf` + `idle_sum.py`, 60 fps):**
   - Odin 3, Splatoon: girando sempre 6,7 W, CPU 144 %, núcleo 1 99 %, 1 % low 56,5; padrão novo 4,8 W, 120 %, 78 %,
     54,6.
@@ -281,4 +282,7 @@ Mi A3 (SD 665, Adreno 610), Odin 3 = AYN Odin 3 (8 Elite, Adreno 830).
     mudar, então é a latência de acordar); giro de 200 µs custa o 1 % low do Splatoon (51,5).
 - **Risco:** jogo com folga entre 80 e 100 % mas sensível à latência de acordar (sincronização fina entre threads em
   núcleos diferentes) pode perder 1 % low. Sintoma: engasgadas com fps médio no limite.
-- **Voltar atrás:** `idle_wait_max_us=0` em `perf/tuning.txt` (gira sempre, como antes), ou `idle_sleep_min_pct=101`.
+- **Por que virou opção:** mesmo com folga, dormir custa 2-3 fps de 1 % low pela latência de acordar. NSMBU no RP5
+  (A/B com a build `54d2d7a7`, 3 rodadas cada): girando 48-49, dormindo até 500 µs 44, até 200 µs 43-46, até 100 µs 47,
+  CPU 131-133 % contra 147 %. Splatoon no Odin 3: 1 % low 54-55 com 500, 200 ou 100 µs, contra 57.
+- **Voltar atrás:** desligar a opção (padrão). `save_battery=1`/`0` em `perf/tuning.txt` força nas medições.
