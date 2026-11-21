@@ -215,6 +215,10 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   after the first shadow map sample, then a crash inside the Qualcomm driver; Turnip T19 restarts the phone. Not memory
   any more (lazy_zero and ASTC took care of that) and not new: the test build of 19/11 does it too. The RP5 runs it
   normally.
+- **Pokkén Tournament on the Odin 3 (Adreno 830), Qualcomm system driver:** the arena is colored noise in battles; v0.1
+  (`e44b3323`) does the same, and Turnip draws it correctly. Not the BC1-BC3 transcode, the self-dependency copy or
+  pass keeping, nor the indexed GPR forms (`bc_transcode`, `selfdep_copy`, `selfdep_keep`, `relwrite_switch`,
+  `relread_select` all off: no change).
 - **Watch Dogs:** the first room comes out overexposed (bright instead of dark) in about half of the runs on the Odin 3,
   with the same build and settings; the results come in streaks, so something carries over between runs.
 - **Shader caches from another phone:** Watch Dogs on the AYN Odin 3 (Adreno 830) closed at boot with a pipeline cache
