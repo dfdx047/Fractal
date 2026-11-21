@@ -356,7 +356,11 @@ between commits (driver, CPU profile), so compare rows only within themselves.
 - **Odin 2 Mini on Turnip:** Tekken Tag Tournament 2 is black at the opening with MrPurple T30; Batman and Watch Dogs
   hung in some of the runs. StevenMXZ's Turnip 27.0 R2 crashes inside the driver compiling Ninja Gaiden 3 pipelines.
 - **Ninja Gaiden 3 on Turnip:** dark floating heads and a blown-out sky remain after the depth of field fix.
-- **Need for Speed: Most Wanted U:** finding the root cause of the white foliage (the community pack hides it).
+- **Need for Speed: Most Wanted U:** finding the root cause of the white foliage (the community pack hides it). Without
+  the update (v0) the pack doesn't help: white foliage and lights at night, darker picture; v32 is fine. Not a code
+  regression (v0.1 does the same on v0) and not the shader cache; the same alpha test in the other three lighting
+  shaders didn't help. Next: find which draw writes the white foliage on v0 (marker shaders) and compare v0/v32 shader
+  dumps. Until then, v32 is required.
 - **Xenoblade Chronicles X on the Qualcomm system driver:** characters drawn as white silhouettes (driver bug); use
   Turnip for now.
 - **Mali in general:** the POCO X6 Pro (Mali-G615) is now a main test device; the RG Cube, kept in its economy CPU

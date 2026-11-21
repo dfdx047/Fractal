@@ -277,6 +277,9 @@ comparable; with factory settings they run faster.
 - **Watch Dogs on Android:** from the Maurice room on, the picture can get too bright in about half of the sessions. On
   Turnip a GPU page fault can hang the game after about 25 minutes. On Mali the opening is black.
 - **Ninja Gaiden 3 on Turnip:** some dark heads and a blown-out sky in certain stages.
+- **Need for Speed: Most Wanted U without its update (v0):** at night the foliage and lights are blown out white and
+  the picture can look dark, because the "Bloom Fix" pack only fixes the game with update v32 installed. Install the v32
+  update for now.
 - **Xenoblade Chronicles X on the Qualcomm system driver:** characters turn into white silhouettes; use Turnip.
 - **Mali:** slower and with more issues than Adreno; custom Mali drivers are experimental.
 

@@ -360,6 +360,10 @@ entre commits (driver, perfil de CPU), então compare cada linha só com ela mes
 - **Ninja Gaiden 3 no Turnip:** cabeças escuras flutuando e céu estourado continuam depois da correção da profundidade
   de campo.
 - **Need for Speed: Most Wanted U:** achar a causa raiz da folhagem branca (o pack da comunidade esconde o problema).
+  Sem a atualização (v0) o pack não resolve: folhagem e luzes brancas à noite, imagem mais escura; a v32 fica certa. Não
+  é regressão do código (a v0.1 faz o mesmo no v0) nem do cache de shaders; o mesmo teste de alpha nos outros três
+  shaders de luz não resolveu. Próximo passo: achar qual draw escreve a folhagem branca no v0 (shaders marcadores) e
+  comparar os dumps de shaders do v0 e da v32. Até lá, é preciso a v32.
 - **Xenoblade Chronicles X no driver do sistema da Qualcomm:** personagens como silhuetas brancas (bug do driver); por
   enquanto use o Turnip.
 - **Mali em geral:** o POCO X6 Pro (Mali-G615) agora é aparelho de teste principal; o RG Cube, mantido no modo

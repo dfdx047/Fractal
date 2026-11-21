@@ -367,6 +367,10 @@ condiciones cambian entre commits (driver, perfil de CPU), así que compara cada
 - **Ninja Gaiden 3 en Turnip:** cabezas oscuras flotando y cielo quemado siguen tras la corrección de la profundidad de
   campo.
 - **Need for Speed: Most Wanted U:** encontrar la causa raíz del follaje blanco (el paquete de la comunidad lo oculta).
+  Sin la actualización (v0) el paquete no sirve: follaje y luces blancos de noche, imagen más oscura; la v32 sale bien.
+  No es una regresión del código (la v0.1 hace lo mismo en v0) ni la caché de shaders; la misma prueba de alpha en los
+  otros tres shaders de luz no sirvió. Siguiente paso: encontrar qué draw escribe el follaje blanco en v0 (shaders
+  marcadores) y comparar los dumps de shaders de v0 y v32. Hasta entonces, hace falta la v32.
 - **Xenoblade Chronicles X con el driver del sistema de Qualcomm:** personajes como siluetas blancas (bug del driver);
   por ahora usa Turnip.
 - **Mali en general:** el POCO X6 Pro (Mali-G615) es ahora dispositivo de prueba principal; la RG Cube, en su modo

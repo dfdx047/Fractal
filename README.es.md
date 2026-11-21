@@ -284,6 +284,9 @@ para que las mediciones sean comparables; con la configuración de fábrica van 
   mitad de las sesiones. En Turnip un fallo de página de la GPU puede colgar el juego después de unos 25 minutos. En
   Mali la intro queda negra.
 - **Ninja Gaiden 3 en Turnip:** algunas cabezas oscuras y el cielo quemado en ciertas fases.
+- **Need for Speed: Most Wanted U sin su actualización (v0):** de noche el follaje y las luces salen blancos, quemados,
+  y la imagen puede verse oscura, porque el paquete "Bloom Fix" solo corrige el juego con la actualización v32
+  instalada. Por ahora, instala la actualización v32.
 - **Xenoblade Chronicles X con el driver del sistema de Qualcomm:** los personajes se ven como siluetas blancas; usa
   Turnip.
 - **Mali:** más lenta y con más problemas que Adreno; los drivers personalizados para Mali son experimentales.

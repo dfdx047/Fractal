@@ -219,6 +219,13 @@ Translations (release notes): v0.2-beta [Português (Brasil)](docs/release-notes
   (`e44b3323`) does the same, and Turnip draws it correctly. Not the BC1-BC3 transcode, the self-dependency copy or
   pass keeping, nor the indexed GPR forms (`bc_transcode`, `selfdep_copy`, `selfdep_keep`, `relwrite_switch`,
   `relread_select` all off: no change).
+- **Need for Speed: Most Wanted U without its update (v0, debug report from an Adreno 840 phone):** blown-out white
+  foliage and lights at night and a darker picture. The "Bloom Fix" pack replaces pixel shader `0265594cffa53eb8`,
+  which v0 also compiles, but on v0 the foliage stays white; with update v32 the game is correct. Not a regression in the
+  code: v0.1 (`e44b3323`) and the v0.2 builds `3c1ce92c`, `b96b5dca` and `4fef8fde` all do the same on v0 (Odin 3,
+  Turnip), and it happens with or without the shader cache. Adding the pack's G-buffer alpha test to the other three
+  lighting shaders that read it (`9681b92b040e8d08`, `3693ec2543b04fca`, `4e24b65f3fbfb14d`) changed nothing. For now:
+  install the v32 update. Scene `tools/perf/scenes/nfs_sky.txt` (opening up to the first night race).
 - **Watch Dogs:** the first room comes out overexposed (bright instead of dark) in about half of the runs on the Odin 3,
   with the same build and settings; the results come in streaks, so something carries over between runs.
 - **Shader caches from another phone:** Watch Dogs on the AYN Odin 3 (Adreno 830) closed at boot with a pipeline cache
