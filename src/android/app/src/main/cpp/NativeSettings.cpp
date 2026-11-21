@@ -218,6 +218,18 @@ Java_dev_dfd_fractal_nativeinterface_NativeSettings_setPlayBootSound([[maybe_unu
 	GetConfig().play_boot_sound = enabled;
 }
 
+extern "C" [[maybe_unused]] JNIEXPORT jboolean JNICALL
+Java_dev_dfd_fractal_nativeinterface_NativeSettings_getSaveBattery([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return GetConfig().save_battery;
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
+Java_dev_dfd_fractal_nativeinterface_NativeSettings_setSaveBattery([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	GetConfig().save_battery = enabled;
+}
+
 extern "C" [[maybe_unused]] JNIEXPORT jint JNICALL
 Java_dev_dfd_fractal_nativeinterface_NativeSettings_getVsyncMode([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
 {

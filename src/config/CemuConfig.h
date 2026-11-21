@@ -390,6 +390,9 @@ struct CemuConfig
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
 	ConfigValue<bool> play_boot_sound{false};
+	// the emulated main core's idle loop sleeps when a game has time to spare (coreinit_Thread.cpp): less CPU and
+	// battery in light games, 1% lows a few fps lower
+	ConfigValue<bool> save_battery{false};
 
 	ConfigValue<std::string> custom_driver_path{};
 

@@ -520,6 +520,7 @@ namespace PerfLog
 		f << "vsync: " << config.vsync.GetValue() << "\n";
 		f << "accurate_barriers: " << (config.vk_accurate_barriers.GetValue() ? 1 : 0) << "\n";
 		f << "cpu_mode: " << (int)config.cpu_mode.GetValue() << "\n";
+		f << "save_battery: " << (config.save_battery.GetValue() ? 1 : 0) << "\n";
 		f << "upscale_filter: " << config.upscale_filter.GetValue() << "\n";
 	}
 

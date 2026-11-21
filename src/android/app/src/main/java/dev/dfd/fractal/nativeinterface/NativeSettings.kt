@@ -37,6 +37,13 @@ object NativeSettings {
     @JvmStatic
     external fun setPlayBootSound(value: Boolean)
 
+    /** The emulated main core rests when a game has time to spare: less CPU and battery, 1% lows a bit lower. */
+    @JvmStatic
+    external fun getSaveBattery(): Boolean
+
+    @JvmStatic
+    external fun setSaveBattery(value: Boolean)
+
     object VSyncMode {
         const val OFF: Int = 0
         const val DOUBLE_BUFFERING: Int = 1

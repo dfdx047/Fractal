@@ -9,6 +9,7 @@ import dev.dfd.fractal.common.settings.GamePadPosition
 import dev.dfd.fractal.common.ui.components.Header
 import dev.dfd.fractal.common.ui.components.ScreenContent
 import dev.dfd.fractal.common.ui.components.SingleSelection
+import dev.dfd.fractal.common.ui.components.Toggle
 import dev.dfd.fractal.common.ui.localization.currentLanguageCode
 import dev.dfd.fractal.common.ui.localization.tr
 import dev.dfd.fractal.nativeinterface.NativeSettings
@@ -64,6 +65,14 @@ fun GeneralSettingsScreen(
             onChoiceChanged = { viewModel.setGamePadPosition(it) },
             choiceToString = { gamePadPositionToString(it) },
             choices = GamePadPosition.entries,
+        )
+
+        Header(tr("Battery"))
+        Toggle(
+            label = tr("Save battery"),
+            description = tr("The emulated CPU rests when a game has time to spare: less CPU use, heat and battery drain in light games, but slightly less smooth (the slowest frames a few fps lower). Heavy games are not affected"),
+            initialCheckedState = NativeSettings::getSaveBattery,
+            onCheckedChanged = NativeSettings::setSaveBattery,
         )
     }
 }

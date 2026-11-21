@@ -3659,3 +3659,12 @@ msgstr "Sujeta el dispositivo quieto y vuelve a intentarlo"
 
 msgid "Gyro calibration reset"
 msgstr "Calibración del giroscopio deshecha"
+
+msgid "Battery"
+msgstr "Batería"
+
+msgid "Save battery"
+msgstr "Ahorrar batería"
+
+msgid "The emulated CPU rests when a game has time to spare: less CPU use, heat and battery drain in light games, but slightly less smooth (the slowest frames a few fps lower). Heavy games are not affected"
+msgstr "La CPU emulada descansa cuando el juego tiene margen: menos uso de CPU, calor y consumo de batería en juegos ligeros, pero un poco menos fluido (los fotogramas más lentos quedan algunos fps por debajo). Los juegos pesados no cambian"

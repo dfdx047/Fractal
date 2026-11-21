@@ -13,6 +13,7 @@
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 
 #include "util/helpers/Semaphore.h"
+#include "config/CemuConfig.h"
 #include "util/helpers/ConcurrentQueue.h"
 #include "util/Fiber/Fiber.h"
 
@@ -1334,10 +1335,11 @@ namespace coreinit
 	// how long the main core's idle loop may sleep: until the next alarm, at most idle_wait_max_us (0 = always spin).
 	// Sleeping every time it ran out of work cost frames on the Retroid Pocket 5 (SM3DW 59.9 -> 53.2 fps, 1% low
 	// 48.7 -> 26.9): short hand-offs between threads paid the wake-up, and the lower load let the governor drop clocks.
-	// So the loop only sleeps when the core has slack (see __OSIdleSleepGate)
+	// So the loop only sleeps with "Save battery" on and when the core has slack (see __OSIdleSleepGate). 100 us
+	// rather than 500: NSMBU on the RP5 1% low 47 instead of 44 (49 always spinning), same CPU
 	static std::chrono::microseconds __OSIdleWaitTimeout()
 	{
-		static const uint64 kMaxUs = (uint64)PerfLog::Tunable("idle_wait_max_us", 500);
+		static const uint64 kMaxUs = (uint64)PerfLog::Tunable("idle_wait_max_us", 100);
 		// paused from the menu: nothing of the game runs, so spinning would only keep a host core at 100%.
 		// 5 ms keeps alarms and system events going; resuming makes threads runnable, which ends the wait at once
 		if (s_activeThreadsSuspended.load(std::memory_order_relaxed))
@@ -1354,25 +1356,31 @@ namespace coreinit
 	}
 
 	// Decides when the main core's idle loop may sleep instead of spinning. A game capped at its frame rate with time
-	// to spare (Splatoon on the AYN Odin 3: GPU 20% busy) kept a host core at 100% only to spin. Sleeping is allowed
-	// when both hold:
+	// to spare (Splatoon on the AYN Odin 3: GPU 20% busy) kept a host core at 100% only to spin. Even then sleeping
+	// costs 2-3 fps of 1% low (the wake-up), so it is the user's choice: "Save battery" in the general settings
+	// (save_battery in perf/tuning.txt overrides it, -1 = the setting). With it on, sleeping is allowed when both hold:
 	// - the core was idle at least idle_sleep_min_pct of the last window: a game that needs the core (SM3DW on the RP5)
 	//   keeps spinning, so neither wake-ups nor lower clocks slow it down
 	// - this idle stretch has lasted idle_spin_us: short hand-offs between threads still find the core spinning
-	// Measured at 60 fps (always spinning -> these defaults): Splatoon on the Odin 3 6.7 -> 4.8 W, CPU 144 -> 120%,
-	// 1% low 56.5 -> 54.6; SM3DW on the RP5 and the POCO X6 Pro never sleeps, so it is unchanged. Lower values cost
+	// Measured at 60 fps with it on (always spinning -> these defaults, sleeping up to 500 us): Splatoon on the Odin 3
+	// 6.7 -> 4.8 W, CPU 144 -> 120%, 1% low 56.5 -> 54.6; NSMBU on the RP5 CPU 147 -> 131%, 1% low 49 -> 47 (100 us);
+	// SM3DW on the RP5 and the POCO X6 Pro never sleeps, so it is unchanged. Lower values cost
 	// SM3DW's 1% low on the RP5 (60%: 51 -> 40-45; 75%: 51 -> 39-45); a 200 us spin cost Splatoon's (51.5)
 	struct __OSIdleSleepGate
 	{
 		static constexpr uint64 kWindowNs = 250'000'000;
 		uint64 spinNs = (uint64)PerfLog::Tunable("idle_spin_us", 2000) * 1000;
 		uint64 minPct = (uint64)PerfLog::Tunable("idle_sleep_min_pct", 80);
+		sint64 enabledOverride = PerfLog::Tunable("save_battery", -1);
 		uint64 idleSinceNs;
 		uint64 windowStartNs;
 		uint64 windowIdleNs = 0;
 		bool slack = false;
 
 		explicit __OSIdleSleepGate(uint64 nowNs) : idleSinceNs(nowNs), windowStartNs(nowNs) {}
+
+		// read once per window, so turning the setting on or off applies to the running game
+		bool Enabled() const { return enabledOverride < 0 ? GetConfig().save_battery.GetValue() : enabledOverride != 0; }
 
 		// idle time of the current stretch that falls inside the current window
 		uint64 IdleInWindow(uint64 nowNs) const { return nowNs - std::max(idleSinceNs, windowStartNs); }
@@ -1385,7 +1393,7 @@ namespace coreinit
 			if (nowNs - windowStartNs >= kWindowNs)
 			{
 				const uint64 idle = windowIdleNs + IdleInWindow(nowNs);
-				slack = idle * 100 >= minPct * (nowNs - windowStartNs);
+				slack = Enabled() && idle * 100 >= minPct * (nowNs - windowStartNs);
 				windowStartNs = nowNs;
 				windowIdleNs = 0;
 			}
